@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
-import { Terminal, X, Play, AlertTriangle } from "lucide-react";
+import { X, Play, AlertCircle, Scroll, BookOpen, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { Panel } from "./SystemUI";
 
 interface CodingTerminalProps {
   onClose: () => void;
@@ -14,184 +15,218 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
     setIsRunning(true);
     setHasError(false);
     
-    // Simulate run time and then an error
+    // Simulate arcane manifestation
     setTimeout(() => {
       setIsRunning(false);
       setHasError(true);
-    }, 1500);
+    }, 1800);
   };
 
   return (
     <motion.div 
-      className="absolute inset-0 bg-[#07060F]/95 backdrop-blur-xl flex items-center justify-center p-8 z-50"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.4, ease: "circOut" }}
+      className="absolute inset-0 bg-[#07060F]/95 backdrop-blur-2xl flex items-center justify-center p-12 z-50 overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
-      {/* Scanline Overlay specific to terminal */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-10"
-        style={{
-          background: "linear-gradient(transparent 50%, rgba(0,0,0,0.25) 50%)",
-          backgroundSize: "100% 4px"
-        }}
-      />
+      {/* Background Arcane Mists */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#2D1B69_0%,#07060F_80%)] opacity-30" />
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
 
-      <div className="w-full max-w-5xl h-full max-h-[700px] bg-[#0D1117] border border-[#22D3EE]/30 shadow-[0_0_30px_rgba(34,211,238,0.1)] flex flex-col relative overflow-hidden font-mono">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-[#22D3EE]/20 bg-[#13102A]">
-          <div className="flex items-center gap-3">
-            <Terminal size={20} className="text-[#22D3EE]" />
-            <h2 className="text-[#22D3EE] font-medium tracking-wider">
-              SYS.OVERRIDE // GATE_04
-            </h2>
-          </div>
-          <button onClick={onClose} className="text-[#C9D1D9] hover:text-[#22D3EE] transition-colors">
-            <X size={24} />
-          </button>
-        </div>
+      {/* Floating Runic Characters in Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.03]">
+        <div className="absolute top-10 left-20 text-9xl font-serif rotate-12">ᛉ</div>
+        <div className="absolute bottom-20 right-40 text-9xl font-serif -rotate-12">ᚦ</div>
+        <div className="absolute top-1/2 left-1/4 text-8xl font-serif rotate-45">ᚨ</div>
+      </div>
 
-        {/* Content */}
-        <div className="flex-1 flex overflow-hidden">
+      <div className="w-full max-w-6xl h-full max-h-[750px] relative">
+        <Panel variant="stone" padding="none" topBorder="gold">
           
-          {/* Instructions (Left) */}
-          <div className="w-1/3 border-r border-[#22D3EE]/20 p-6 flex flex-col bg-[#07060F]/50">
-            <h3 className="text-[#E2D9F3] text-lg mb-4" style={{ fontFamily: "'Cinzel', serif" }}>
-              CHALLENGE ALGORITHM
-            </h3>
-            
-            <div className="text-[#C9D1D9] text-sm space-y-4 font-mono leading-relaxed">
-              <p>
-                The door mechanism requires a valid sequence to open.
-              </p>
-              <p>
-                Write a function <span className="text-[#4ADE80]">isValidSequence(arr)</span> that returns true if the array strictly alternates between even and odd numbers.
-              </p>
-              
-              <div className="bg-[#13102A] p-3 border border-[#2D2850] text-xs">
-                <span className="text-[#7A5A10] block mb-1">Example 1:</span>
-                Input: [1, 2, 3, 4]<br/>
-                Output: true
+          {/* Header: The Obsidian Header */}
+          <div className="flex justify-between items-center p-6 border-b border-[#2D2850]/50 bg-[#0C0A18]/80 relative">
+            <div className="flex items-center gap-6">
+              <div className="p-3 bg-[#13111C] border border-[#F0A500]/20 shadow-[0_0_15px_rgba(240,165,0,0.1)]">
+                <BookOpen size={24} className="text-[#F0A500]" />
               </div>
-              
-              <div className="bg-[#13102A] p-3 border border-[#2D2850] text-xs">
-                <span className="text-[#7A5A10] block mb-1">Example 2:</span>
-                Input: [1, 3, 2]<br/>
-                Output: false
+              <div>
+                <h2 className="text-[#F0A500] text-2xl tracking-[0.2em] font-black uppercase" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
+                  The Obsidian Obelisk
+                </h2>
+                <span className="text-[#9D93C0] text-[10px] tracking-[0.5em] uppercase font-bold opacity-60">
+                  Oracle of Recursive Truth
+                </span>
               </div>
             </div>
+            
+            <button 
+              onClick={onClose} 
+              className="text-[#9D93C0] hover:text-[#F0A500] transition-all hover:rotate-90 p-2 pointer-events-auto"
+            >
+              <X size={32} strokeWidth={1} />
+            </button>
           </div>
 
-          {/* Code Editor (Right) */}
-          <div className="w-2/3 flex flex-col relative">
+          {/* Main Interface Split */}
+          <div className="flex h-[calc(100%-100px)]">
             
-            {/* Mock Editor Area */}
-            <div className="flex-1 p-6 overflow-y-auto text-[#C9D1D9] text-sm leading-relaxed whitespace-pre font-mono">
-              <div className="flex">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">1</div>
-                <div><span className="text-[#7C3AED]">function</span> <span className="text-[#3B82F6]">isValidSequence</span>(arr) {'{'}</div>
+            {/* Left: Challenge Scroll */}
+            <div className="w-[35%] border-r border-[#2D2850]/30 p-10 flex flex-col bg-[#07060F]/40 overflow-y-auto">
+              <div className="flex items-center gap-3 mb-8">
+                <Scroll size={18} className="text-[#F0A500]" />
+                <h3 className="text-[#E2D9F3] text-sm tracking-[0.3em] uppercase font-black font-['Cinzel']">
+                  The Incantation
+                </h3>
               </div>
-              <div className="flex">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">2</div>
-                <div>  <span className="text-[#9D93C0]">{"// Write your logic here"}</span></div>
-              </div>
-              <div className="flex">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">3</div>
-                <div>  <span className="text-[#7C3AED]">if</span> (arr.length {'<='} 1) <span className="text-[#7C3AED]">return</span> <span className="text-[#F0A500]">true</span>;</div>
-              </div>
-              <div className="flex">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">4</div>
-                <div>  </div>
-              </div>
-              <div className="flex">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">5</div>
-                <div>  <span className="text-[#7C3AED]">for</span> (<span className="text-[#7C3AED]">let</span> i = 1; i {'<'} arr.length; i++) {'{'}</div>
-              </div>
-              <div className="flex bg-[#22D3EE]/10 relative">
-                {/* Active line highlight */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#22D3EE]" />
-                <div className="w-8 text-[#22D3EE] select-none text-right pr-4">6</div>
-                <div>    <span className="text-[#9D93C0]">{"// ERROR IN LOGIC BELOW"}</span></div>
-              </div>
-              <div className="flex bg-[#22D3EE]/5">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">7</div>
-                <div className="flex items-center">
-                  <span>    <span className="text-[#7C3AED]">if</span> (arr[i] % 2 === arr[i-1] % 2)</span>
-                  {/* Blinking Cursor */}
-                  <motion.div 
-                    animate={{ opacity: [1, 0] }} 
-                    transition={{ repeat: Infinity, duration: 0.8 }}
-                    className="w-2 h-4 bg-[#22D3EE] ml-1 inline-block align-middle"
-                  />
+              
+              <div className="text-[#9D93C0] font-['Lato'] space-y-6 leading-relaxed">
+                <p className="italic text-lg text-[#E2D9F3]/90">
+                  "The Great Seal of the Stack Overseer demands a sequence of balance..."
+                </p>
+                <p className="text-[15px]">
+                  Divine a function <span className="text-[#F0A500] font-bold">isValidSequence(arr)</span> that returns <span className="text-[#F0A500]">true</span> if the array strictly alternates between Light (Even) and Shadow (Odd) numbers.
+                </p>
+                
+                <div className="bg-[#13111C] p-6 border-l-2 border-[#F0A500]/40 rounded-r-sm space-y-4">
+                  <div className="text-xs">
+                    <span className="text-[#F0A500] block mb-2 uppercase font-bold tracking-widest">Example 1</span>
+                    <code className="text-[#E2D9F3] block">Input: [1, 2, 3, 4] → true</code>
+                  </div>
+                  <div className="text-xs">
+                    <span className="text-[#F0A500] block mb-2 uppercase font-bold tracking-widest">Example 2</span>
+                    <code className="text-[#E2D9F3] block">Input: [1, 3, 2] → false</code>
+                  </div>
                 </div>
               </div>
-              <div className="flex">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">8</div>
-                <div>      <span className="text-[#7C3AED]">return</span> <span className="text-[#F0A500]">false</span>;</div>
-              </div>
-              <div className="flex">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">9</div>
-                <div>  {'}'}</div>
-              </div>
-              <div className="flex">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">10</div>
-                <div>  <span className="text-[#7C3AED]">return</span> <span className="text-[#F0A500]">true</span>;</div>
-              </div>
-              <div className="flex">
-                <div className="w-8 text-[#2D2850] select-none text-right pr-4">11</div>
-                <div>{'}'}</div>
-              </div>
             </div>
 
-            {/* Console Output (Glitch effect on error) */}
-            <div className={`h-48 border-t ${hasError ? 'border-[#EF4444]' : 'border-[#2D2850]'} bg-[#07060F] p-4 flex flex-col`}>
-              <div className="flex justify-between items-center mb-2">
-                <span className={`text-xs uppercase tracking-widest ${hasError ? 'text-[#EF4444]' : 'text-[#9D93C0]'}`}>
-                  Console Output
-                </span>
-                <button 
-                  onClick={handleRun}
-                  disabled={isRunning}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-[#22D3EE]/10 border border-[#22D3EE] text-[#22D3EE] text-xs uppercase hover:bg-[#22D3EE]/20 transition-colors disabled:opacity-50"
-                >
-                  {isRunning ? 'Executing...' : <><Play size={12} /> Execute Code</>}
-                </button>
-              </div>
+            {/* Right: The Arcane Editor */}
+            <div className="flex-1 flex flex-col bg-[#0C0A18]/30">
               
-              <div className="flex-1 font-mono text-sm overflow-y-auto">
-                {isRunning && <span className="text-[#22D3EE]">Compiling sequence...</span>}
+              {/* Editor Workspace */}
+              <div className="flex-1 p-10 overflow-y-auto font-mono text-[15px] relative">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/granite.png')] opacity-[0.02] pointer-events-none" />
                 
-                {!isRunning && hasError && (
-                  <motion.div 
-                    initial={{ x: -10, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    className="text-[#EF4444] flex flex-col gap-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle size={14} />
-                      <span className="font-bold">RUNTIME ERROR:</span> Test case failed.
+                <div className="space-y-1 relative z-10">
+                  <div className="flex gap-6 group">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">1</span>
+                    <span className="text-[#7C3AED] font-bold">function</span> 
+                    <span className="text-[#F0A500]">isValidSequence</span>(arr) {'{'}
+                  </div>
+                  <div className="flex gap-6">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">2</span>
+                    <span className="text-[#9D93C0] italic opacity-40">{"// Divine the logic within..."}</span>
+                  </div>
+                  <div className="flex gap-6">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">3</span>
+                    <span className="ml-8 text-[#7C3AED] font-bold">if</span> (arr.length {'<='} 1) 
+                    <span className="text-[#7C3AED] font-bold"> return</span> 
+                    <span className="text-[#F0A500] font-bold"> true</span>;
+                  </div>
+                  <div className="flex gap-6">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">4</span>
+                  </div>
+                  <div className="flex gap-6">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">5</span>
+                    <span className="ml-8 text-[#7C3AED] font-bold">for</span> 
+                    (<span className="text-[#7C3AED]">let</span> i = 1; i {'<'} arr.length; i++) {'{'}
+                  </div>
+                  <div className="flex gap-6 bg-[#7C3AED]/10 border-l-2 border-[#7C3AED]">
+                    <span className="w-8 text-[#7C3AED] text-right text-xs">6</span>
+                    <span className="ml-8 text-[#EF4444] font-bold">{"// OMEN: BALANCE BREACH DETECTED"}</span>
+                  </div>
+                  <div className="flex gap-6 bg-[#7C3AED]/5 relative">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">7</span>
+                    <div className="ml-8 flex items-center">
+                      <span className="text-[#E2D9F3]">
+                        <span className="text-[#7C3AED] font-bold">if</span> (arr[i] % 2 === arr[i-1] % 2)
+                      </span>
+                      <motion.div 
+                        animate={{ opacity: [1, 0] }} 
+                        transition={{ repeat: Infinity, duration: 1 }}
+                        className="w-2.5 h-5 bg-[#F0A500] ml-2 shadow-[0_0_10px_#F0A500]"
+                      />
                     </div>
-                    <span className="text-[#EF4444]/80 text-xs ml-5">
-                      Expected: false | Received: true<br/>
-                      Input: [2, 4, 6]
-                    </span>
-                    {/* Fake Glitch artifact */}
-                    <div className="absolute bottom-4 right-4 text-[10px] text-[#EF4444]/40 select-none">
-                      ERR_OVERFLOW_0x892A
-                    </div>
-                  </motion.div>
-                )}
-
-                {!isRunning && !hasError && (
-                  <span className="text-[#9D93C0]">Ready. Awaiting execution.</span>
-                )}
+                  </div>
+                  <div className="flex gap-6">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">8</span>
+                    <span className="ml-16 text-[#7C3AED] font-bold">return</span> 
+                    <span className="text-[#F0A500] font-bold"> false</span>;
+                  </div>
+                  <div className="flex gap-6">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">9</span>
+                    <span className="ml-8">{'}'}</span>
+                  </div>
+                  <div className="flex gap-6">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">10</span>
+                    <span className="ml-8 text-[#7C3AED] font-bold">return</span> 
+                    <span className="text-[#F0A500] font-bold"> true</span>;
+                  </div>
+                  <div className="flex gap-6">
+                    <span className="w-8 text-[#2D2850] text-right text-xs">11</span>
+                    <span>{'}'}</span>
+                  </div>
+                </div>
               </div>
-            </div>
 
+              {/* Oracle Feedback Footer */}
+              <div className={`p-8 border-t transition-all duration-700 ${hasError ? 'border-[#EF4444]/50 bg-[#EF4444]/5' : 'border-[#2D2850]/50 bg-[#07060F]/60'}`}>
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center gap-3">
+                    <Sparkles size={16} className={hasError ? 'text-[#EF4444]' : 'text-[#F0A500]'} />
+                    <span className={`text-xs uppercase tracking-[0.4em] font-black font-['Cinzel'] ${hasError ? 'text-[#EF4444]' : 'text-[#9D93C0]'}`}>
+                      Oracle Resonance
+                    </span>
+                  </div>
+                  
+                  <button 
+                    onClick={handleRun}
+                    disabled={isRunning}
+                    className="group relative pointer-events-auto active:scale-95 transition-all overflow-hidden"
+                  >
+                    <div className="px-10 py-3 bg-[#0C0A18] border border-[#F0A500]/40 text-[#F0A500] text-xs font-black tracking-[0.3em] uppercase font-['Cinzel'] group-hover:bg-[#F0A500]/10 transition-colors">
+                      {isRunning ? 'Invoking...' : 'Invoke Spell'}
+                    </div>
+                  </button>
+                </div>
+
+                <div className="font-['Lato'] text-sm min-h-[60px]">
+                  {isRunning && (
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-[#F0A500] italic"
+                    >
+                      "Incanting runes... searching for divine symmetry..."
+                    </motion.p>
+                  )}
+                  
+                  {!isRunning && hasError && (
+                    <motion.div 
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="text-[#EF4444] space-y-2"
+                    >
+                      <div className="flex items-center gap-2 font-bold text-[#EF4444] font-['Cinzel'] tracking-widest text-[11px]">
+                        <AlertCircle size={14} /> DARK OMEN DETECTED: TEST FAILED
+                      </div>
+                      <p className="text-xs italic opacity-80 pl-6">
+                        "Your logic falters at [2, 4, 6]. The Light and Shadow have merged, breaking the required alternation."
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {!isRunning && !hasError && (
+                    <p className="text-[#9D93C0]/60 italic">
+                      "The obelisk awaits your command. Divine the solution to pass the trial."
+                    </p>
+                  )}
+                </div>
+              </div>
+
+            </div>
           </div>
-        </div>
+        </Panel>
       </div>
     </motion.div>
   );

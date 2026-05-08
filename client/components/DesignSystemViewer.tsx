@@ -36,7 +36,7 @@ export function DesignSystemViewer({ onBack }: DesignSystemViewerProps) {
             <h1 className="text-[#F0A500] text-3xl tracking-[0.15em] mb-2" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
               GRIMOIRE OF DESIGN
             </h1>
-            <p className="text-[#9D93C0] font-['Inter']">Standardized UI Components for Capsule.</p>
+            <p className="text-[#9D93C0] font-['Lato']">Standardized UI Components for Capsule.</p>
           </div>
           <Button variant="ghost" onClick={onBack}>
             <ArrowLeft size={16} /> RETURN
@@ -82,11 +82,11 @@ export function DesignSystemViewer({ onBack }: DesignSystemViewerProps) {
                   </div>
                   <div>
                     <span className="text-[#7A5A10] text-[10px] uppercase font-['Cinzel'] tracking-widest block mb-1">Body Text</span>
-                    <p className="text-[#9D93C0] text-sm font-['Inter']">The ancient texts speak of recursive loops that can tear the very fabric of reality.</p>
+                    <p className="text-[#9D93C0] text-sm font-['Lato']">The ancient texts speak of recursive loops that can tear the very fabric of reality.</p>
                   </div>
                   <div>
                     <span className="text-[#7A5A10] text-[10px] uppercase font-['Cinzel'] tracking-widest block mb-1">Code Text (Terminal Only)</span>
-                    <p className="text-[#C9D1D9] bg-[#0D1117] p-2 text-sm font-mono border border-[#2D2850]">return true;</p>
+                    <p className="text-[#C9D1D9] bg-[#0D1117] p-2 text-sm font-['Fira_Code'] border border-[#2D2850]">return true;</p>
                   </div>
                 </div>
               </Panel>
@@ -128,7 +128,7 @@ export function DesignSystemViewer({ onBack }: DesignSystemViewerProps) {
                 
                 <div className="py-4">
                   <Tooltip content="Grants +15 to your Arcane power when standing in shadow.">
-                    <button className="text-[#A78BFA] border-b border-dashed border-[#A78BFA] font-['Inter'] text-sm pb-0.5">
+                    <button className="text-[#A78BFA] border-b border-dashed border-[#A78BFA] font-['Lato'] text-sm pb-0.5">
                       Hover to read Lore
                     </button>
                   </Tooltip>
@@ -168,7 +168,7 @@ export function DesignSystemViewer({ onBack }: DesignSystemViewerProps) {
 
             <section>
               <h2 className="text-[#E2D9F3] text-xl mb-4 font-['Cinzel'] tracking-wider">Item Cards</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-wrap gap-4 justify-center">
                 <ItemCard 
                   title="Blade of Sorting" 
                   description="Deals O(n log n) physical damage per swing." 

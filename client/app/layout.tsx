@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, Cinzel, Cinzel_Decorative, Fira_Code } from "next/font/google";
+import { Inter, Cinzel, Cinzel_Decorative, Fira_Code, Lato } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const lato = Lato({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-lato",
   display: "swap",
 });
 
@@ -46,7 +53,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${cinzel.variable} ${cinzelDeco.variable} ${firaCode.variable} h-full`}
+      className={`${inter.variable} ${lato.variable} ${cinzel.variable} ${cinzelDeco.variable} ${firaCode.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-[#020408] text-slate-200 antialiased overflow-x-hidden">
         {children}
