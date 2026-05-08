@@ -1,66 +1,25 @@
-import express from 'express';
-import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
-import cors from 'cors';
-import helmet from 'helmet';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
-
-console.log('Connecting to database via Driver Adapter...');
-if (!process.env.DATABASE_URL) {
-  console.error('Error: DATABASE_URL is not set in environment variables');
-  process.exit(1);
-}
-
-// 1. Create a pg Pool
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
-// 2. Create the Prisma adapter
-const adapter = new PrismaPg(pool);
-
-// 3. Initialize Prisma with the adapter
-const prisma = new PrismaClient({ adapter });
+import express from "express";
+import cors from "cors";
+import http from "http";
 
 const app = express();
-const port = process.env.PORT || 5000;
 
-// Middleware
-app.use(helmet()); // Security headers
-app.use(cors());   // Enable CORS for frontend requests
-app.use(express.json());
+app.use(cors())
+app.use(express.json())
 
-// Routes
-app.get('/health', async (req, res) => {
-  try {
-    // Basic DB check
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ 
-      status: 'ok', 
-      database: 'connected',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Database check failed:', error);
-    res.status(500).json({ status: 'error', message: 'Database connection failed' });
-  }
-});
+app.get("/", (_req, res) => {
+    res.send("Dungeon Master API running.....")
+})
 
-// Start Server
-const server = app.listen(port, () => {
-  console.log(`🚀 Server is running on http://localhost:${port}`);
-});
+const PORT = process.env.PORT || 5000;
 
-// Graceful Shutdown
-const shutdown = async () => {
-  console.log('\nShutting down gracefully...');
-  server.close();
-  await prisma.$disconnect();
-  await pool.end();
-  console.log('Connections closed. Goodbye!');
-  process.exit(0);
-};
+const server = http.createServer(app);
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`)
+})
+
+server.on("error", (error) => {
+    console.error("Failed to start server", error)
+})
+
