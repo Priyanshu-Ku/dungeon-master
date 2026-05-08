@@ -13,6 +13,11 @@ import { DialogueSystem } from "@/components/DialogueSystem";
 import { RewardBoon } from "@/components/RewardBoon";
 import { SettingsOverlay } from "@/components/SettingsOverlay";
 import AuthModal from "@/components/AuthModal";
+import { Leaderboard } from "@/components/Leaderboard";
+import { PlayerProfile } from "@/components/PlayerProfile";
+import { VictoryDefeatScreen } from "@/components/VictoryDefeatScreen";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PauseMenu } from "@/components/PauseMenu";
 
 type GameState = "menu" | "playing" | "design-system" | "settings";
 
@@ -24,6 +29,12 @@ export default function Home() {
   const [isDialogueOpen, setIsDialogueOpen] = useState(false);
   const [isBoonOpen, setIsBoonOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isVictoryOpen, setIsVictoryOpen] = useState(false);
+  const [isDefeatOpen, setIsDefeatOpen] = useState(false);
+  const [isLoadingOpen, setIsLoadingOpen] = useState(false);
+  const [isPauseOpen, setIsPauseOpen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleStartGame = (action: string) => {
@@ -107,6 +118,43 @@ export default function Home() {
               {isBoonOpen && (
                 <RewardBoon isOpen={isBoonOpen} onSelect={() => setIsBoonOpen(false)} />
               )}
+              
+              {isLeaderboardOpen && (
+                <Leaderboard onClose={() => setIsLeaderboardOpen(false)} />
+              )}
+
+              {isProfileOpen && (
+                <PlayerProfile onClose={() => setIsProfileOpen(false)} />
+              )}
+              
+              {isVictoryOpen && (
+                <VictoryDefeatScreen 
+                  result="victory" 
+                  onContinue={() => setIsVictoryOpen(false)} 
+                  onLeaderboard={() => { setIsVictoryOpen(false); setIsLeaderboardOpen(true); }}
+                />
+              )}
+
+              {isDefeatOpen && (
+                <VictoryDefeatScreen 
+                  result="defeat" 
+                  onRetry={() => setIsDefeatOpen(false)} 
+                  onRetreat={() => setIsDefeatOpen(false)}
+                />
+              )}
+
+              {isLoadingOpen && (
+                <LoadingScreen />
+              )}
+
+              {isPauseOpen && (
+                <PauseMenu 
+                  onResume={() => setIsPauseOpen(false)} 
+                  onSettings={() => { setIsPauseOpen(false); /* toggle settings */ }}
+                  onViewMap={() => { setIsPauseOpen(false); setIsMapOpen(true); }}
+                  onQuit={() => setIsPauseOpen(false)}
+                />
+              )}
             </AnimatePresence>
 
             {/* Dev Controls to toggle new screens */}
@@ -114,6 +162,12 @@ export default function Home() {
               <button onClick={() => setIsMapOpen(true)} className="px-2 py-1 bg-black text-[8px] text-white border border-white/20">MAP</button>
               <button onClick={() => setIsDialogueOpen(true)} className="px-2 py-1 bg-black text-[8px] text-white border border-white/20">TALK</button>
               <button onClick={() => setIsBoonOpen(true)} className="px-2 py-1 bg-black text-[8px] text-white border border-white/20">BOON</button>
+              <button onClick={() => setIsLeaderboardOpen(true)} className="px-2 py-1 bg-black text-[8px] text-white border border-white/20">RANK</button>
+              <button onClick={() => setIsProfileOpen(true)} className="px-2 py-1 bg-black text-[8px] text-white border border-white/20">PROFILE</button>
+              <button onClick={() => setIsLoadingOpen(!isLoadingOpen)} className="px-2 py-1 bg-black text-[8px] text-white border border-white/20">LOAD</button>
+              <button onClick={() => setIsPauseOpen(true)} className="px-2 py-1 bg-black text-[8px] text-white border border-white/20">PAUSE</button>
+              <button onClick={() => setIsVictoryOpen(true)} className="px-2 py-1 bg-[#1A2E1A] text-[8px] text-[#4ADE80] border border-[#4ADE80]/30">WIN</button>
+              <button onClick={() => setIsDefeatOpen(true)} className="px-2 py-1 bg-[#3A0F0F] text-[8px] text-[#F87171] border border-[#F87171]/30">LOSE</button>
             </div>
           </GameWrapper>
         )}

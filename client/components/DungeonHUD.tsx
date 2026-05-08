@@ -6,7 +6,7 @@ import {
   Settings, Coins, Sword, Skull, Shield, Zap, 
   ChevronRight, Terminal, Hexagon, History
 } from "lucide-react";
-import { Panel, StatBar, Divider } from "./SystemUI";
+import { Panel, StatBar, Divider, Button } from "./SystemUI";
 import { DungeonMap } from "./DungeonMap";
 
 interface DungeonHUDProps {
@@ -68,13 +68,14 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
             <Coins size={16} className="text-[#F0A500] group-hover:scale-110 transition-transform" />
             <span className="text-[#F0A500] font-['Cinzel'] text-[14px] font-bold tracking-tight">1,240</span>
           </div>
-          <button 
+          <Button 
+            variant="danger"
             onClick={() => setShowRetreatConfirm(true)}
-            className="flex items-center gap-2 px-3 py-1.5 border border-[#F87171]/30 hover:border-[#F87171] hover:bg-[#F87171]/10 rounded-sm transition-all group"
+            className="!py-1.5 !px-3 !text-[10px]"
           >
-            <History size={14} className="text-[#F87171] group-hover:rotate-[-45deg] transition-transform" />
-            <span className="text-[#F87171] font-['Cinzel'] text-[10px] tracking-widest font-bold uppercase">Retreat</span>
-          </button>
+            <History size={16} className="text-[#F87171] group-hover:rotate-[-45deg] transition-transform" />
+            <span>Retreat</span>
+          </Button>
           <button 
             onClick={onOpenSettings}
             className="text-[#4B456A] hover:text-[#F0A500] transition-colors p-1.5 rounded-full hover:bg-[#F0A500]/10"
@@ -102,21 +103,23 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
                 </p>
               </div>
               <div className="flex gap-4">
-                <button 
+                <Button 
+                  variant="ghost"
                   onClick={() => setShowRetreatConfirm(false)}
-                  className="flex-1 px-6 py-3 border border-[#4A3060] text-[#A78BFA] font-['Cinzel'] text-xs tracking-widest hover:bg-[#7C3AED10] transition-all"
+                  className="flex-1"
                 >
                   STAY AND FIGHT
-                </button>
-                <button 
+                </Button>
+                <Button 
+                  variant="danger"
                   onClick={() => {
                     setShowRetreatConfirm(false);
                     onBackToMenu?.();
                   }}
-                  className="flex-1 px-6 py-3 bg-[#DC2626]/20 border border-[#DC2626] text-[#DC2626] font-['Cinzel'] text-xs tracking-widest hover:bg-[#DC2626]/30 transition-all"
+                  className="flex-1"
                 >
                   RETREAT
-                </button>
+                </Button>
               </div>
             </Panel>
           </motion.div>
@@ -149,7 +152,7 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
           <Panel variant="default" padding="compact" className="h-[150px] bg-[#0C0A18]/60 backdrop-blur-sm flex flex-col border-[#7C3AED]/20">
             <div className="flex items-center justify-between mb-3 px-2 border-b border-[#7C3AED]/10 pb-2">
               <span className="text-[#7C3AED] font-['Cinzel'] text-[10px] tracking-[0.2em] uppercase font-bold flex items-center gap-2">
-                <History size={12} />
+                <History size={16} />
                 Event Log
               </span>
               <button className="text-[9px] text-[#4B456A] hover:text-[#7C3AED] uppercase tracking-widest">Clear</button>
@@ -179,7 +182,7 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
             <div className="flex items-center gap-5 mb-5">
               <div className="w-14 h-14 bg-[#0C0A18] border border-[#F87171]/40 flex items-center justify-center rounded-[2px] text-[#F87171] relative group overflow-hidden">
                 <div className="absolute inset-0 bg-[#F87171]/5 group-hover:bg-[#F87171]/10 transition-colors" />
-                <Skull size={32} className="relative z-10 drop-shadow-[0_0_10px_rgba(248,113,113,0.5)]" />
+                <Skull size={28} className="relative z-10 drop-shadow-[0_0_10px_rgba(248,113,113,0.5)]" />
               </div>
               <div className="flex flex-col">
                 <h3 className="text-[#F0A500] font-['Cinzel'] text-[18px] font-bold tracking-widest">
@@ -221,10 +224,10 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
               <span className="text-[#4B456A] text-[9px] font-mono">1/4 Active</span>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <AbilityCard name="Code Strike" icon={<Sword size={18} />} active />
-              <AbilityCard name="Array Shield" icon={<Shield size={18} />} locked />
-              <AbilityCard name="Stack Over" icon={<Zap size={18} />} locked />
-              <AbilityCard name="Binary View" icon={<Settings size={18} />} locked />
+              <AbilityCard name="Code Strike" icon={<Sword size={20} />} active />
+              <AbilityCard name="Array Shield" icon={<Shield size={20} />} locked />
+              <AbilityCard name="Stack Over" icon={<Zap size={20} />} locked />
+              <AbilityCard name="Binary View" icon={<Settings size={20} />} locked />
             </div>
           </Panel>
 
@@ -252,20 +255,20 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
 
       {/* FOOTER ACTION BAR */}
       <footer className="h-[60px] bg-gradient-to-t from-[#0C0A18] to-transparent flex items-center justify-center gap-6 px-10 pb-2">
-        <button 
+        <Button 
+          variant="ghost"
           onClick={onOpenCoding}
-          className="flex items-center gap-3 px-6 h-10 bg-[#0C0A18] border border-[#7C3AED]/40 rounded-[2px] group hover:border-[#7C3AED] transition-all"
         >
-          <Terminal size={18} className="text-[#7C3AED]" />
-          <span className="text-[#E2D9F3] text-[11px] font-['Cinzel'] tracking-widest uppercase group-hover:text-white">Terminal [T]</span>
-        </button>
-        <button 
+          <Terminal size={20} className="text-[#7C3AED]" />
+          <span>Terminal [T]</span>
+        </Button>
+        <Button 
+          variant="ghost"
           onClick={onOpenInventory}
-          className="flex items-center gap-3 px-6 h-10 bg-[#0C0A18] border border-[#F0A500]/40 rounded-[2px] group hover:border-[#F0A500] transition-all"
         >
-          <Hexagon size={18} className="text-[#F0A500]" />
-          <span className="text-[#E2D9F3] text-[11px] font-['Cinzel'] tracking-widest uppercase group-hover:text-white">Inventory [I]</span>
-        </button>
+          <Hexagon size={20} className="text-[#F0A500]" />
+          <span className="text-[#F0A500]">Inventory [I]</span>
+        </Button>
       </footer>
     </div>
   );
@@ -291,7 +294,7 @@ function ProgressRow({ name, status }: { name: string, status: "cleared" | "acti
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <Skull size={12} className={isCleared ? 'text-[#4B456A]' : 'text-[#F87171]'} />
+          <Skull size={16} className={isCleared ? 'text-[#4B456A]' : 'text-[#F87171]'} />
           <span className={`text-[12px] font-['Lato'] ${isCleared ? 'text-[#4B456A] line-through' : 'text-[#E2D9F3]'}`}>{name}</span>
         </div>
         <span className={`text-[9px] font-bold uppercase tracking-tighter ${isCleared ? 'text-[#4ADE80]' : 'text-[#FACC15]'}`}>

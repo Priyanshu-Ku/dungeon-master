@@ -1,12 +1,13 @@
 import { motion } from "motion/react";
-import { X, User, Sword, Shield, Zap, Gem, Scroll } from "lucide-react";
-import { Panel } from "./SystemUI";
+import { X, User, Sword, Shield, Zap, Gem, Scroll, Box } from "lucide-react";
+import { Panel, Button } from "./SystemUI";
 
 interface InventoryProps {
   onClose: () => void;
+  isEmpty?: boolean;
 }
 
-export function Inventory({ onClose }: InventoryProps) {
+export function Inventory({ onClose, isEmpty = false }: InventoryProps) {
   return (
     <motion.div 
       className="absolute inset-0 bg-[#07060F]/90 backdrop-blur-xl flex items-center justify-center p-12 z-50"
@@ -39,107 +40,126 @@ export function Inventory({ onClose }: InventoryProps) {
               onClick={onClose} 
               className="text-[#9D93C0] hover:text-[#F0A500] transition-all hover:rotate-90 pointer-events-auto"
             >
-              <X size={32} strokeWidth={1.5} />
+              <X size={28} strokeWidth={1.5} />
             </button>
           </div>
 
           {/* Content Body */}
           <div className="flex h-[calc(100%-100px)] overflow-hidden">
             
-            {/* Left: Attributes & Mastery */}
-            <div className="w-[30%] border-r border-[#2D2850]/30 p-10 flex flex-col bg-[#07060F]/30 overflow-y-auto">
-              <SectionHeader title="Hero Attributes" />
-              
-              <div className="space-y-6 mt-6">
-                <StatRow icon={<Sword size={16} />} label="Vanquish" value="1,245" color="#E2D9F3" />
-                <StatRow icon={<Shield size={16} />} label="Fortitude" value="450" color="#EF4444" />
-                <StatRow icon={<Zap size={16} />} label="Arcanum" value="890" color="#7C3AED" />
-                <StatRow icon={<User size={16} />} label="Presence" value="210" color="#4ADE80" />
-              </div>
-
-              <div className="mt-12">
-                <SectionHeader title="Active Blessing" />
-                <div className="mt-6 p-6 bg-[#13111C] border border-[#F0A500]/10 rounded-[2px] relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5" />
-                  <p className="text-[#F0A500] text-sm font-bold tracking-widest mb-2 font-['Cinzel']">Void Resilience</p>
-                  <p className="text-[#9D93C0] text-[13px] leading-relaxed italic font-['Lato']">
-                    "The shadows embrace you. Reduces incoming dark damage by 15% and whispers secrets of the recursive void."
-                  </p>
+            {isEmpty ? (
+              <div className="flex-1 flex flex-col items-center justify-center bg-[#07060F]/30">
+                <div className="w-[120px] h-[120px] rounded-full bg-[#13111C] border border-[#2D2850]/50 flex items-center justify-center mb-6 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
+                  <Box size={28} className="text-[#F0A500] opacity-40 drop-shadow-[0_0_10px_rgba(240,165,0,0.3)] scale-[1.7]" />
                 </div>
+                <h3 className="font-['Cinzel'] text-[16px] text-[#9D93C0] tracking-widest uppercase mb-2">
+                  Your satchel is empty.
+                </h3>
+                <p className="font-['Lato'] text-[13px] text-[#4B456A] mb-8">
+                  Defeat enemies to collect items.
+                </p>
+                <Button variant="ghost" onClick={onClose}>
+                  Explore Rooms
+                </Button>
               </div>
+            ) : (
+              <>
+                {/* Left: Attributes & Mastery */}
+                <div className="w-[30%] border-r border-[#2D2850]/30 p-10 flex flex-col bg-[#07060F]/30 overflow-y-auto">
+                  <SectionHeader title="Hero Attributes" />
+                  
+                  <div className="space-y-6 mt-6">
+                    <StatRow icon={<Sword size={16} />} label="Vanquish" value="1,245" color="#E2D9F3" />
+                    <StatRow icon={<Shield size={16} />} label="Fortitude" value="450" color="#EF4444" />
+                    <StatRow icon={<Zap size={16} />} label="Arcanum" value="890" color="#7C3AED" />
+                    <StatRow icon={<User size={16} />} label="Presence" value="210" color="#4ADE80" />
+                  </div>
 
-              <div className="mt-auto pt-10">
-                <div className="flex items-center justify-between p-4 bg-[#0C0A18] border border-[#2D2850]/50">
-                   <div className="flex items-center gap-3">
-                     <Gem size={18} className="text-[#F0A500]" />
-                     <span className="text-[#9D93C0] text-xs tracking-widest uppercase font-['Cinzel']">Soul Fragments</span>
-                   </div>
-                   <span className="text-[#F0A500] font-black text-xl tabular-nums">14,205</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Center: Character Portrait */}
-            <div className="flex-1 flex flex-col items-center justify-center relative bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] bg-fixed">
-              {/* Magical Backglow */}
-              <div className="absolute w-[500px] h-[500px] bg-[#7C3AED]/5 rounded-full blur-[120px]" />
-              
-              {/* The "Mirror" Frame */}
-              <div className="relative z-10 w-96 h-[500px] border-x border-[#322D46] flex flex-col items-center justify-center group">
-                 <div className="absolute top-0 w-full h-24 bg-gradient-to-b from-[#F0A500]/5 to-transparent" />
-                 <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-[#F0A500]/5 to-transparent" />
-                 
-                 {/* Placeholder for Character - Stylized Icon */}
-                 <div className="relative">
-                    <User size={200} className="text-[#E2D9F3]/10 drop-shadow-[0_0_30px_rgba(124,58,237,0.2)]" strokeWidth={0.5} />
-                    <motion.div 
-                      className="absolute inset-0 flex items-center justify-center"
-                      animate={{ opacity: [0.1, 0.3, 0.1] }}
-                      transition={{ repeat: Infinity, duration: 4 }}
-                    >
-                      <div className="text-8xl text-[#7C3AED]/20 font-serif">ᛉ</div>
-                    </motion.div>
-                 </div>
-                 
-                 <h2 className="mt-8 text-[#E2D9F3] text-2xl tracking-[0.4em] font-black uppercase" style={{ fontFamily: "'Cinzel', serif" }}>
-                   Voidwalker
-                 </h2>
-              </div>
-
-              {/* Equipment Orbits */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-[15%] left-[20%] pointer-events-auto"><EquipSlot label="Visage" rarity="epic" /></div>
-                <div className="absolute top-[40%] left-[15%] pointer-events-auto"><EquipSlot label="Raiment" /></div>
-                <div className="absolute top-[65%] left-[20%] pointer-events-auto"><EquipSlot label="Greaves" /></div>
-
-                <div className="absolute top-[15%] right-[20%] pointer-events-auto"><EquipSlot label="Harbinger" rarity="legendary" /></div>
-                <div className="absolute top-[40%] right-[15%] pointer-events-auto"><EquipSlot label="Amulet" /></div>
-                <div className="absolute top-[65%] right-[20%] pointer-events-auto"><EquipSlot label="Grimoire" rarity="legendary" /></div>
-              </div>
-            </div>
-
-            {/* Right: Backpack Grid */}
-            <div className="w-[30%] border-l border-[#2D2850]/30 p-10 flex flex-col bg-[#07060F]/30 overflow-y-auto">
-              <SectionHeader title="Ancient Satchel" />
-              
-              <div className="grid grid-cols-4 gap-3 mt-8">
-                {[...Array(28)].map((_, i) => (
-                  <InventoryItem key={i} index={i} />
-                ))}
-              </div>
-              
-              <div className="mt-10 p-6 border border-[#2D2850]/30 bg-[#0C0A18]/50">
-                 <div className="flex gap-4 items-start">
-                    <Scroll size={20} className="text-[#9D93C0] mt-1" />
-                    <div>
-                      <h4 className="text-[#E2D9F3] text-sm font-bold tracking-widest font-['Cinzel']">Scribe's Note</h4>
-                      <p className="text-[#9D93C0] text-xs leading-relaxed italic mt-2">
-                        "Each item carries the weight of those who failed the trials. Carry them with purpose."
+                  <div className="mt-12">
+                    <SectionHeader title="Active Blessing" />
+                    <div className="mt-6 p-6 bg-[#13111C] border border-[#F0A500]/10 rounded-[2px] relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5" />
+                      <p className="text-[#F0A500] text-sm font-bold tracking-widest mb-2 font-['Cinzel']">Void Resilience</p>
+                      <p className="text-[#9D93C0] text-[13px] leading-relaxed italic font-['Lato']">
+                        "The shadows embrace you. Reduces incoming dark damage by 15% and whispers secrets of the recursive void."
                       </p>
                     </div>
-                 </div>
-              </div>
-            </div>
+                  </div>
+
+                  <div className="mt-auto pt-10">
+                    <div className="flex items-center justify-between p-4 bg-[#0C0A18] border border-[#2D2850]/50">
+                       <div className="flex items-center gap-3">
+                         <Gem size={20} className="text-[#F0A500]" />
+                         <span className="text-[#9D93C0] text-xs tracking-widest uppercase font-['Cinzel']">Soul Fragments</span>
+                       </div>
+                       <span className="text-[#F0A500] font-black text-xl tabular-nums">14,205</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Center: Character Portrait */}
+                <div className="flex-1 flex flex-col items-center justify-center relative bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] bg-fixed">
+                  {/* Magical Backglow */}
+                  <div className="absolute w-[500px] h-[500px] bg-[#7C3AED]/5 rounded-full blur-[120px]" />
+                  
+                  {/* The "Mirror" Frame */}
+                  <div className="relative z-10 w-96 h-[500px] border-x border-[#322D46] flex flex-col items-center justify-center group">
+                     <div className="absolute top-0 w-full h-24 bg-gradient-to-b from-[#F0A500]/5 to-transparent" />
+                     <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-[#F0A500]/5 to-transparent" />
+                     
+                     {/* Placeholder for Character - Stylized Icon */}
+                     <div className="relative">
+                        <User size={28} className="text-[#E2D9F3]/10 drop-shadow-[0_0_30px_rgba(124,58,237,0.2)] scale-[7]" strokeWidth={0.5} />
+                        <motion.div 
+                          className="absolute inset-0 flex items-center justify-center"
+                          animate={{ opacity: [0.1, 0.3, 0.1] }}
+                          transition={{ repeat: Infinity, duration: 4 }}
+                        >
+                          <div className="text-8xl text-[#7C3AED]/20 font-serif">ᛉ</div>
+                        </motion.div>
+                     </div>
+                     
+                     <h2 className="mt-8 text-[#E2D9F3] text-2xl tracking-[0.4em] font-black uppercase" style={{ fontFamily: "'Cinzel', serif" }}>
+                       Voidwalker
+                     </h2>
+                  </div>
+
+                  {/* Equipment Orbits */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-[15%] left-[20%] pointer-events-auto"><EquipSlot label="Visage" rarity="epic" /></div>
+                    <div className="absolute top-[40%] left-[15%] pointer-events-auto"><EquipSlot label="Raiment" /></div>
+                    <div className="absolute top-[65%] left-[20%] pointer-events-auto"><EquipSlot label="Greaves" /></div>
+
+                    <div className="absolute top-[15%] right-[20%] pointer-events-auto"><EquipSlot label="Harbinger" rarity="legendary" /></div>
+                    <div className="absolute top-[40%] right-[15%] pointer-events-auto"><EquipSlot label="Amulet" /></div>
+                    <div className="absolute top-[65%] right-[20%] pointer-events-auto"><EquipSlot label="Grimoire" rarity="legendary" /></div>
+                  </div>
+                </div>
+
+                {/* Right: Backpack Grid */}
+                <div className="w-[30%] border-l border-[#2D2850]/30 p-10 flex flex-col bg-[#07060F]/30 overflow-y-auto">
+                  <SectionHeader title="Ancient Satchel" />
+                  
+                  <div className="grid grid-cols-4 gap-3 mt-8">
+                    {[...Array(28)].map((_, i) => (
+                      <InventoryItem key={i} index={i} />
+                    ))}
+                  </div>
+                  
+                  <div className="mt-10 p-6 border border-[#2D2850]/30 bg-[#0C0A18]/50">
+                     <div className="flex gap-4 items-start">
+                        <Scroll size={20} className="text-[#9D93C0] mt-1" />
+                        <div>
+                          <h4 className="text-[#E2D9F3] text-sm font-bold tracking-widest font-['Cinzel']">Scribe's Note</h4>
+                          <p className="text-[#9D93C0] text-xs leading-relaxed italic mt-2">
+                            "Each item carries the weight of those who failed the trials. Carry them with purpose."
+                          </p>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              </>
+            )}
 
           </div>
         </Panel>

@@ -1,7 +1,6 @@
 import { motion } from "motion/react";
-import { X, Play, AlertCircle, Scroll, BookOpen, Sparkles } from "lucide-react";
-import { useState } from "react";
-import { Panel } from "./SystemUI";
+import { X, Play, AlertCircle, Scroll, BookOpen, Sparkles, TriangleAlert } from "lucide-react";
+import { Panel, Button } from "./SystemUI";
 
 interface CodingTerminalProps {
   onClose: () => void;
@@ -47,7 +46,7 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
           <div className="flex justify-between items-center p-6 border-b border-[#2D2850]/50 bg-[#0C0A18]/80 relative">
             <div className="flex items-center gap-6">
               <div className="p-3 bg-[#13111C] border border-[#F0A500]/20 shadow-[0_0_15px_rgba(240,165,0,0.1)]">
-                <BookOpen size={24} className="text-[#F0A500]" />
+                <BookOpen size={28} className="text-[#F0A500]" />
               </div>
               <div>
                 <h2 className="text-[#F0A500] text-2xl tracking-[0.2em] font-black uppercase" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
@@ -63,7 +62,7 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
               onClick={onClose} 
               className="text-[#9D93C0] hover:text-[#F0A500] transition-all hover:rotate-90 p-2 pointer-events-auto"
             >
-              <X size={32} strokeWidth={1} />
+              <X size={28} strokeWidth={1} />
             </button>
           </div>
 
@@ -73,7 +72,7 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
             {/* Left: Challenge Scroll */}
             <div className="w-[35%] border-r border-[#2D2850]/30 p-10 flex flex-col bg-[#07060F]/40 overflow-y-auto">
               <div className="flex items-center gap-3 mb-8">
-                <Scroll size={18} className="text-[#F0A500]" />
+                <Scroll size={20} className="text-[#F0A500]" />
                 <h3 className="text-[#E2D9F3] text-sm tracking-[0.3em] uppercase font-black font-['Cinzel']">
                   The Incantation
                 </h3>
@@ -179,15 +178,13 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
                     </span>
                   </div>
                   
-                  <button 
+                  <Button 
+                    variant="primary"
                     onClick={handleRun}
                     disabled={isRunning}
-                    className="group relative pointer-events-auto active:scale-95 transition-all overflow-hidden"
                   >
-                    <div className="px-10 py-3 bg-[#0C0A18] border border-[#F0A500]/40 text-[#F0A500] text-xs font-black tracking-[0.3em] uppercase font-['Cinzel'] group-hover:bg-[#F0A500]/10 transition-colors">
-                      {isRunning ? 'Invoking...' : 'Invoke Spell'}
-                    </div>
-                  </button>
+                    {isRunning ? 'Invoking...' : 'Invoke Spell'}
+                  </Button>
                 </div>
 
                 <div className="font-['Lato'] text-sm min-h-[60px]">
@@ -205,14 +202,39 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
                     <motion.div 
                       initial={{ y: 10, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      className="text-[#EF4444] space-y-2"
+                      className="w-full"
                     >
-                      <div className="flex items-center gap-2 font-bold text-[#EF4444] font-['Cinzel'] tracking-widest text-[11px]">
-                        <AlertCircle size={14} /> DARK OMEN DETECTED: TEST FAILED
-                      </div>
-                      <p className="text-xs italic opacity-80 pl-6">
-                        "Your logic falters at [2, 4, 6]. The Light and Shadow have merged, breaking the required alternation."
-                      </p>
+                      <Panel variant="default" padding="compact" className="w-full !border-l-2 !border-l-[#EF4444] relative overflow-hidden bg-[#1A0505]">
+                        {/* Glitch/Noise Overlay */}
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 mix-blend-overlay pointer-events-none" />
+                        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')] opacity-[0.08] pointer-events-none mix-blend-overlay" />
+                        
+                        <div className="relative z-10 flex flex-col gap-3">
+                          <div className="flex items-center gap-2">
+                            <TriangleAlert size={20} className="text-[#EF4444]" />
+                            <h3 className="font-['Cinzel'] text-[12px] text-[#EF4444] tracking-[0.15em] uppercase font-bold m-0">
+                              Execution Error
+                            </h3>
+                          </div>
+                          
+                          <div className="bg-[#0A0505] border border-[#5A1515] p-3 rounded-sm">
+                            <code className="font-['Fira_Code'] text-[12px] text-[#F87171] whitespace-pre-wrap">
+                              SyntaxError: Unexpected token ')'
+                              <br/>
+                              {"    at eval (eval at runCode (worker.js:42:1), <anonymous>:7:15)"}
+                            </code>
+                          </div>
+                          
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="font-['Lato'] text-[12px] text-[#9D93C0]">
+                              Check your syntax and try again.
+                            </span>
+                            <Button variant="ghost" className="scale-[0.8] origin-right">
+                              View Hint
+                            </Button>
+                          </div>
+                        </div>
+                      </Panel>
                     </motion.div>
                   )}
 
