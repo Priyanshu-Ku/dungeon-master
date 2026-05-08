@@ -1,79 +1,63 @@
 "use client";
 
 import { useState } from "react";
-import { GameWrapper } from "../components/GameWrapper";
-import { HUD } from "../components/HUD";
-import { Inventory } from "../components/Inventory";
-import { CodingTerminal } from "../components/CodingTerminal";
-import { StartMenu } from "../components/StartMenu";
-import { DesignSystemViewer } from "../components/DesignSystemViewer";
 import { AnimatePresence } from "motion/react";
+import { StartMenu } from "@/components/StartMenu";
+import { HUD } from "@/components/HUD";
+import { Inventory } from "@/components/Inventory";
+import { CodingTerminal } from "@/components/CodingTerminal";
+import { GameWrapper } from "@/components/GameWrapper";
+import { DesignSystemViewer } from "@/components/DesignSystemViewer";
 
-type GameState =
-  | "START"
-  | "HUD"
-  | "INVENTORY"
-  | "CODING"
-  | "DESIGN_SYSTEM";
+type GameState = "menu" | "playing" | "design-system";
 
-export default function App() {
-  const [gameState, setGameState] =
-    useState<GameState>("START");
+export default function Home() {
+  const [gameState, setGameState] = useState<GameState>("menu");
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
 
-  const handleStartMenuAction = (action: string) => {
+  const handleStartGame = (action: string) => {
     if (action === "design") {
-      setGameState("DESIGN_SYSTEM");
+      setGameState("design-system");
     } else {
-      setGameState("HUD");
+      setGameState("playing");
     }
   };
 
+  const toggleInventory = () => setIsInventoryOpen(!isInventoryOpen);
+  const toggleTerminal = () => setIsTerminalOpen(!isTerminalOpen);
+
   return (
-    <GameWrapper>
+    <main className="relative w-screen h-screen overflow-hidden">
       <AnimatePresence mode="wait">
-        {gameState === "START" && (
-          <StartMenu
-            key="start"
-            onStart={handleStartMenuAction}
-          />
+        {gameState === "menu" && (
+          <StartMenu key="menu" onStart={handleStartGame} />
+        )}
+
+        {gameState === "design-system" && (
+          <DesignSystemViewer key="design" onBack={() => setGameState("menu")} />
+        )}
+
+        {gameState === "playing" && (
+          <GameWrapper key="game">
+            <HUD 
+              isActive={!isInventoryOpen && !isTerminalOpen}
+              onOpenInventory={toggleInventory}
+              onOpenCoding={toggleTerminal}
+            />
+            
+            <AnimatePresence>
+              {isInventoryOpen && (
+                <Inventory onClose={toggleInventory} />
+              )}
+              
+              {isTerminalOpen && (
+                <CodingTerminal onClose={toggleTerminal} />
+              )}
+            </AnimatePresence>
+          </GameWrapper>
         )}
       </AnimatePresence>
-
-      {/* 
-        The HUD is active when we are in HUD, INVENTORY, or CODING.
-      */}
-      {(gameState === "HUD" ||
-        gameState === "INVENTORY" ||
-        gameState === "CODING") && (
-          <HUD
-            isActive={gameState === "HUD"}
-            onOpenInventory={() => setGameState("INVENTORY")}
-            onOpenCoding={() => setGameState("CODING")}
-          />
-        )}
-
-      <AnimatePresence>
-        {gameState === "INVENTORY" && (
-          <Inventory
-            key="inventory"
-            onClose={() => setGameState("HUD")}
-          />
-        )}
-
-        {gameState === "CODING" && (
-          <CodingTerminal
-            key="coding"
-            onClose={() => setGameState("HUD")}
-          />
-        )}
-
-        {gameState === "DESIGN_SYSTEM" && (
-          <DesignSystemViewer
-            key="design"
-            onBack={() => setGameState("START")}
-          />
-        )}
-      </AnimatePresence>
-    </GameWrapper>
+    </main>
   );
 }
