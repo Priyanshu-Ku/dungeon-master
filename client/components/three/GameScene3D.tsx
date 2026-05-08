@@ -71,14 +71,8 @@ export function GameScene3D() {
           {/* Dungeon geometry */}
           <DungeonEnvironment />
 
-          {/* Test Red Cube */}
-          <mesh position={[0, 2, -2]}>
-            <boxGeometry args={[1, 1, 1]} />
-            <meshBasicMaterial color="red" />
-          </mesh>
-
           {/* Player character + WASD + Camera */}
-          {/* <PlayerCharacter /> */}
+          <PlayerCharacter />
 
           {/* Floating DSA challenge nodes */}
           <FloatingDSANodes
@@ -88,6 +82,16 @@ export function GameScene3D() {
           {/* Portal door at corridor end */}
           <PortalDoor />
         </Suspense>
+
+        {/* Bloom — neon glow */}
+        <EffectComposer>
+          <Bloom
+            intensity={1.5}
+            luminanceThreshold={0.2}
+            luminanceSmoothing={0.85}
+            mipmapBlur
+          />
+        </EffectComposer>
       </Canvas>
 
       {/* ── 2D HUD overlay ── */}
