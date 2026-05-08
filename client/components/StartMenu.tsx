@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect, useMemo } from "react";
 import { Play, BarChart3, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface StartMenuProps {
   onStart: (action: string) => void;
@@ -10,6 +11,7 @@ interface StartMenuProps {
 type MenuState = "splash" | "main";
 
 export function StartMenu({ onStart, onOpenAuth }: StartMenuProps) {
+  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -60,8 +62,8 @@ export function StartMenu({ onStart, onOpenAuth }: StartMenuProps) {
 
         <div className="flex flex-col gap-6 items-center">
           <MenuItem label="Identify Scribe" onClick={onOpenAuth} />
-          <MenuItem label="Continue Journey" onClick={() => onStart("continue")} />
-          <MenuItem label="New Expedition" onClick={() => onStart("new")} active />
+          <MenuItem label="Continue Journey" onClick={() => router.push("/dungeon")} />
+          <MenuItem label="New Expedition" onClick={() => router.push("/dungeon")} active />
           <MenuItem label="UI Compendium" onClick={() => onStart("design")} />
           <MenuItem label="System Settings" onClick={() => onStart("settings")} />
           <MenuItem label="Exit to Desktop" onClick={() => onStart("exit")} />
