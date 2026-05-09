@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AppView = 'MENU' | 'GAME' | 'ONBOARDING' | 'LOADING';
+export type AppView = 'MENU' | 'GAME' | 'ONBOARDING' | 'LOADING' | 'CINEMATIC' | 'DASHBOARD';
 
 interface MetaState {
   currentView: AppView;

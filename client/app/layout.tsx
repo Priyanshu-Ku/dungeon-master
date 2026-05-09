@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Cinzel, Cinzel_Decorative, Fira_Code, Lato } from "next/font/google";
+import { Inter, Cinzel, Cinzel_Decorative, Fira_Code, Lato, Cormorant_SC } from "next/font/google";
 import "./globals.css";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { ToastContainer } from "@/components/ui/Toast";
@@ -20,6 +20,13 @@ const lato = Lato({
 const cinzel = Cinzel({
   subsets: ["latin"],
   variable: "--font-cinzel",
+  display: "swap",
+});
+
+const cormorantSC = Cormorant_SC({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-cormorant",
   display: "swap",
 });
 
@@ -55,7 +62,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${lato.variable} ${cinzel.variable} ${cinzelDeco.variable} ${firaCode.variable} h-full`}
+      className={`${inter.variable} ${lato.variable} ${cinzel.variable} ${cormorantSC.variable} ${cinzelDeco.variable} ${firaCode.variable} h-full`}
       data-scroll-behavior="smooth"
     >
       <body className="min-h-full flex flex-col bg-[#020408] text-slate-200 antialiased overflow-x-hidden">

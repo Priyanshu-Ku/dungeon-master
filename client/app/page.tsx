@@ -7,6 +7,12 @@ import { MainMenu } from '@/components/hud/MainMenu';
 import { Onboarding } from '@/components/hud/Onboarding';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import CombatScene from '@/app/combat/CombatScene';
+import dynamic from 'next/dynamic';
+
+const CinematicIntro = dynamic(
+  () => import('@/components/three/CinematicIntro').then(m => m.CinematicIntro),
+  { ssr: false }
+);
 
 export default function Home() {
   const { currentView, initializeMeta } = useMetaStore();
@@ -44,6 +50,13 @@ export default function Home() {
 
         {currentView === 'LOADING' && (
           <LoadingScreen key="loading" onComplete={() => useMetaStore.getState().setView('GAME')} />
+        )}
+
+        {currentView === 'CINEMATIC' && (
+          <CinematicIntro
+            key="cinematic"
+            onComplete={() => useMetaStore.getState().setView('LOADING')}
+          />
         )}
 
         {currentView === 'GAME' && (
