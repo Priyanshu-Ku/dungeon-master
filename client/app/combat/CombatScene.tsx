@@ -75,7 +75,7 @@ export default function CombatScene() {
     initDungeon, currentRoomId, serializeDungeonState, hydrateDungeonState, markRoomCleared 
   } = useDungeonStore();
 
-  const { activeDialogueLine, activeSpeaker } = useCombatStore();
+  const { activeDialogueLine, activeSpeaker, showCheckpointNotif, showCodingChallenge, setShowCodingChallenge } = useCombatStore();
 
   const {
     serializeEquipmentState, hydrateEquipmentState, getEquippedItems, addItem
@@ -271,65 +271,266 @@ export default function CombatScene() {
       </Canvas>
 
       <div style={{ position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
-        {/* Subtle Background Dialogue */}
-        <AnimatePresence mode="wait">
-          {activeDialogueLine && (
-            <motion.div 
-              key={activeDialogueLine}
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 1.05 }}
+        {/* ── CHECKPOINT NOTIFICATION ── */}
+        <AnimatePresence>
+          {showCheckpointNotif && (
+            <motion.div
+              initial={{ x: 120, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 120, opacity: 0 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: 'absolute',
-                top: '12%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'rgba(2, 2, 5, 0.9)',
-                backdropFilter: 'blur(20px)',
-                color: activeSpeaker === 'Wizard' ? '#FFD700' : '#00E5FF',
-                padding: '32px 48px',
-                borderRadius: '2px',
-                border: `1px solid ${activeSpeaker === 'Wizard' ? 'rgba(255, 215, 0, 0.2)' : 'rgba(0, 229, 255, 0.2)'}`,
-                width: '90%',
-                maxWidth: '750px',
-                textAlign: 'center',
-                boxShadow: '0 40px 100px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.05)',
+                top: '50%',
+                right: '32px',
+                transform: 'translateY(-50%)',
                 pointerEvents: 'none',
-                zIndex: 100
+                zIndex: 300,
+                width: '260px',
               }}
             >
-              <div style={{ 
-                fontSize: '10px', 
-                letterSpacing: '0.5em', 
-                marginBottom: '20px', 
-                opacity: 0.5,
-                fontWeight: 900,
-                fontFamily: 'var(--font-mono)',
-                textTransform: 'uppercase',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '15px'
+              {/* Glow backdrop */}
+              <div style={{
+                position: 'absolute', inset: '-4px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,140,0,0.1))',
+                filter: 'blur(12px)',
+              }} />
+
+              <div style={{
+                position: 'relative',
+                background: 'linear-gradient(160deg, rgba(20,15,0,0.97), rgba(10,8,0,0.99))',
+                border: '1px solid rgba(255,215,0,0.3)',
+                borderRadius: '8px',
+                padding: '20px 20px 16px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,215,0,0.08)',
+                backdropFilter: 'blur(20px)',
+                overflow: 'hidden',
               }}>
-                <div style={{ width: '30px', height: '1px', background: 'currentColor', opacity: 0.3 }} />
-                {activeSpeaker}
-                <div style={{ width: '30px', height: '1px', background: 'currentColor', opacity: 0.3 }} />
+
+                {/* Corner accents */}
+                {[{top:'6px',left:'6px',bw:'2px 0 0 2px'},{top:'6px',right:'6px',bw:'2px 2px 0 0'},
+                  {bottom:'6px',left:'6px',bw:'0 0 2px 2px'},{bottom:'6px',right:'6px',bw:'0 2px 2px 0'}]
+                  .map((c,i) => (
+                  <div key={i} style={{
+                    position:'absolute', width:'10px', height:'10px',
+                    borderStyle:'solid', borderColor:'rgba(255,215,0,0.5)',
+                    borderWidth: c.bw, ...c,
+                  }}/>
+                ))}
+
+                {/* Icon row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+                  {/* Pulsing checkpoint ring */}
+                  <div style={{ position: 'relative', width: '40px', height: '40px', flexShrink: 0 }}>
+                    <motion.div
+                      animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                      transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+                      style={{
+                        position: 'absolute', inset: 0,
+                        borderRadius: '50%',
+                        border: '2px solid #FFD700',
+                      }}
+                    />
+                    <div style={{
+                      position: 'absolute', inset: '4px',
+                      borderRadius: '50%',
+                      background: 'radial-gradient(circle, #3a2800, #1a1000)',
+                      border: '1px solid rgba(255,215,0,0.5)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '18px',
+                    }}>✦</div>
+                  </div>
+
+                  <div>
+                    <div style={{
+                      fontSize: '9px',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.4em',
+                      color: 'rgba(255,215,0,0.5)',
+                      textTransform: 'uppercase',
+                      marginBottom: '4px',
+                    }}>Quest Milestone</div>
+                    <div style={{
+                      fontSize: '15px',
+                      fontFamily: 'var(--font-cinzel)',
+                      fontWeight: 700,
+                      color: '#FFD700',
+                      letterSpacing: '0.05em',
+                    }}>Checkpoint Unlocked</div>
+                  </div>
+                </div>
+
+                {/* Subtext */}
+                <div style={{
+                  fontSize: '12px',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'rgba(200,180,100,0.7)',
+                  marginBottom: '14px',
+                  lineHeight: '1.5',
+                }}>The Wizard awaits your plea…</div>
+
+                {/* Auto-dismiss progress bar */}
+                <motion.div
+                  initial={{ scaleX: 1 }}
+                  animate={{ scaleX: 0 }}
+                  transition={{ duration: 2.5, ease: 'linear' }}
+                  style={{
+                    height: '2px',
+                    background: 'linear-gradient(to right, #FFD700, #FF8C00)',
+                    borderRadius: '1px',
+                    transformOrigin: 'left',
+                  }}
+                />
               </div>
-              <p style={{ 
-                fontSize: '24px', 
-                margin: 0, 
-                lineHeight: '1.5',
-                fontFamily: 'var(--font-cinzel)',
-                fontWeight: 400,
-                color: '#E2E8F0',
-                textShadow: '0 2px 10px rgba(0,0,0,0.5)'
-              }}>
-                "<TypewriterText text={activeDialogueLine} />"
-              </p>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ── DIALOGUE BOX ── */}
+        <AnimatePresence mode="wait">
+          {activeDialogueLine && activeSpeaker && (() => {
+            const isWizard = activeSpeaker === 'Wizard';
+            const accent   = isWizard ? '#C9A84C' : '#4FC3F7';
+            const avatarBg = isWizard
+              ? 'radial-gradient(circle at 40% 35%, #2a1d00, #0a0700)'
+              : 'radial-gradient(circle at 40% 35%, #002030, #000b12)';
+            return (
+              <motion.div
+                key={activeDialogueLine}
+                initial={{ opacity: 0, y: 32 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                style={{
+                  position: 'absolute',
+                  bottom: '6%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '88%',
+                  maxWidth: '820px',
+                  pointerEvents: 'none',
+                  zIndex: 200,
+                }}
+              >
+                {/* Panel */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'stretch',
+                  background: 'rgba(6, 6, 14, 0.92)',
+                  backdropFilter: 'blur(18px)',
+                  border: `1px solid rgba(${isWizard ? '201,168,76' : '79,195,247'},0.2)`,
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  boxShadow: `0 16px 60px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.03)`,
+                }}>
+
+                  {/* Left accent bar */}
+                  <div style={{
+                    width: '4px',
+                    flexShrink: 0,
+                    background: `linear-gradient(to bottom, ${accent}, transparent)`,
+                  }} />
+
+                  {/* Avatar */}
+                  <div style={{
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '20px 20px 20px 16px',
+                  }}>
+                    <motion.div
+                      animate={{
+                        boxShadow: [
+                          `0 0 10px ${accent}55`,
+                          `0 0 22px ${accent}99`,
+                          `0 0 10px ${accent}55`,
+                        ],
+                      }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        background: avatarBg,
+                        border: `1.5px solid ${accent}66`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '26px',
+                        userSelect: 'none',
+                      }}
+                    >
+                      {isWizard ? '🧙' : '⚔️'}
+                    </motion.div>
+                  </div>
+
+                  {/* Text */}
+                  <div style={{ flex: 1, padding: '18px 24px 18px 4px', minWidth: 0 }}>
+                    {/* Speaker label */}
+                    <div style={{
+                      fontSize: '9px',
+                      letterSpacing: '0.45em',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      color: accent,
+                      textTransform: 'uppercase',
+                      marginBottom: '10px',
+                      opacity: 0.85,
+                    }}>
+                      {activeSpeaker}
+                    </div>
+
+                    {/* Dialogue */}
+                    <p style={{
+                      margin: 0,
+                      fontSize: '17px',
+                      lineHeight: '1.7',
+                      fontFamily: 'Georgia, serif',
+                      fontWeight: 400,
+                      color: '#D8DFE8',
+                      textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                    }}>
+                      <TypewriterText text={activeDialogueLine} speed={22} />
+                    </p>
+                  </div>
+
+                  {/* Right: animated sound bars */}
+                  <div style={{
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingRight: '20px',
+                    gap: '3px',
+                  }}>
+                    {[0.5, 0.9, 0.6, 1, 0.4].map((h, i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ scaleY: [h, 1, h * 0.3, 0.8, h] }}
+                        transition={{
+                          duration: 0.7 + i * 0.09,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                          delay: i * 0.11,
+                        }}
+                        style={{
+                          width: '3px',
+                          height: '18px',
+                          borderRadius: '2px',
+                          background: accent,
+                          transformOrigin: 'center',
+                          opacity: 0.65,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })()}
+        </AnimatePresence>
+
+
 
         {(combatPhase === 'EXPLORATION' || combatPhase === 'DECISION') && (
           <>
@@ -352,7 +553,10 @@ export default function CombatScene() {
 
         <DialogueBox />
         <CodexOverlay isOpen={isCodexOpen} onClose={() => setIsCodexOpen(false)} />
-        <ProblemSolver isOpen={isIDESolverOpen} onClose={() => setIsIDESolverOpen(false)} />
+        <ProblemSolver
+          isOpen={showCodingChallenge || isIDESolverOpen}
+          onClose={() => { setShowCodingChallenge(false); setIsIDESolverOpen(false); }}
+        />
 
         <AnimatePresence mode="wait">
           {combatPhase === 'DECISION' && <CombatDecisionMenu key="decision" />}

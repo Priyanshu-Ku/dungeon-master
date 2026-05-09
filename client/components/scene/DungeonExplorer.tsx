@@ -10,14 +10,69 @@ import { PlayerCharacter } from './PlayerCharacter';
 import { Wizard } from './Wizard';
 import { useDialogueStore } from '@/store/dialogueStore';
 import { prefetchAllDialogue, playPreloadedAudio } from '@/utils/voice';
+import { useProblemStore, Problem } from '@/store/problemStore';
+
+// Two Sum problem presented by the Wizard
+const TWO_SUM_PROBLEM: Problem = {
+  id: 'wizard_challenge_two_sum',
+  title: 'Two Sum',
+  difficulty: 'Easy',
+  fnName: 'twoSum',
+  timeLimit: 300,
+  description: `Given an array of integers nums and a target integer target, return the indices of the two numbers that add up to target.
+
+• Each input has exactly one solution
+• You may not use the same element twice
+• Return indices in any order
+
+---
+
+EXAMPLE 1
+Input:  nums = [2, 7, 11, 15], target = 9
+Output: [0, 1]
+Because nums[0] + nums[1] = 2 + 7 = 9
+
+EXAMPLE 2
+Input:  nums = [3, 2, 4], target = 6
+Output: [1, 2]
+
+---
+
+CONSTRAINTS
+2 ≤ nums.length ≤ 10⁴
+-10⁹ ≤ nums[i] ≤ 10⁹
+-10⁹ ≤ target ≤ 10⁹`,
+  starterCode: `/**
+ * @param {number[]} nums
+ * @param {number} target
+ * @return {number[]}
+ */
+function twoSum(nums, target) {
+  // Write your solution here
+  
+};`,
+  testCases: [
+    { input: '[2,7,11,15], 9',  expected: '[0,1]',  status: 'pending' },
+    { input: '[3,2,4], 6',      expected: '[1,2]',  status: 'pending' },
+    { input: '[3,3], 6',        expected: '[0,1]',  status: 'pending' },
+  ],
+};
 
 // --- DIALOGUE SEQUENCE ---
 const DIALOGUE_SEQUENCE = [
-  { speaker: "Player", text: "Please, wise one, I need your help!" },
-  { speaker: "Wizard", text: "A traveler in these ancient woods? Tell me, what ails your heart?" },
-  { speaker: "Player", text: "My daughter... she was taken from me. I've been searching for days, but the forest is endless. I'm lost and desperate." },
-  { speaker: "Wizard", text: "A heavy burden indeed. The path ahead requires great mental fortitude. I must test if you are strong enough to face what lies ahead." },
-  { speaker: "Wizard", text: "Solve this ancient puzzle to prove your worth. Only then shall I guide you." }
+  { speaker: "Wizard", text: "Halt, traveler. You seek the echoes of the lost?" },
+  { speaker: "Player", text: "I seek my daughter. Are you the keeper of this realm?" },
+  { speaker: "Wizard", text: "A heavy burden indeed. The fragments of truth are scattered. But a cipher guards the next path. Prove your worth." },
+  { speaker: "Player", text: "A cipher? Show it to me." },
+  { speaker: "Wizard", text: "Very well. Align the resonance." }
+];
+
+const POST_SOLVE_DIALOGUE_SEQUENCE = [
+  { speaker: "Wizard", text: "Brilliant. You have unraveled the cipher with flawless logic." },
+  { speaker: "Player", text: "The resonance is stable. Now, honor our bargain. Where is she?" },
+  { speaker: "Wizard", text: "Patience. Drink from this well of knowledge. Your strength grows." },
+  { speaker: "Player", text: "I feel the surge... But my daughter. Which way?" },
+  { speaker: "Wizard", text: "Venture deeper into the Obsidian Depths. The shadowed path to the North-East holds the echoes you seek. Go." }
 ];
 
 // --- GEOMETRY UTILS ---
@@ -202,6 +257,10 @@ export function DungeonExplorer() {
 
   const setActiveDialogue = useCombatStore(state => state.setActiveDialogue);
   const isDialogueActive = useCombatStore(state => !!state.activeDialogueLine);
+  const isCodingChallengeOpen = useCombatStore(state => state.showCodingChallenge);
+  const triggerPostSolveDialogue = useCombatStore(state => state.triggerPostSolveDialogue);
+  const setShowCheckpointNotif = useCombatStore(state => state.setShowCheckpointNotif);
+  const { setProblem } = useProblemStore();
   const { startDialogue } = useDialogueStore();
 
   // Keep refs in sync with state
@@ -299,59 +358,95 @@ export function DungeonExplorer() {
     };
   }, []);
 
+  // Handle POST-SOLVE Dialogue Sequence
+  useEffect(() => {
+    if (triggerPostSolveDialogue) {
+      console.log("[Interaction] Post-solve triggered. Starting post-solve conversation...");
+      useCombatStore.getState().setTriggerPostSolveDialogue(false); // consume flag
+
+      const runPostSolve = async () => {
+        try {
+          const audioCache = await prefetchAllDialogue(POST_SOLVE_DIALOGUE_SEQUENCE);
+          moveState.current = { forward: false, backward: false, left: false, right: false, sprint: false };
+          setIsMoving(false);
+          
+          for (let i = 0; i < POST_SOLVE_DIALOGUE_SEQUENCE.length; i++) {
+            const line = POST_SOLVE_DIALOGUE_SEQUENCE[i];
+            const audio = audioCache[i];
+            console.log(`[Conversation] Line ${i}: ${line.speaker}`);
+            setActiveDialogue(line.text, line.speaker);
+            await playPreloadedAudio(audio);
+            await new Promise(resolve => setTimeout(resolve, 400));
+          }
+          console.log("[Conversation] Post-solve sequence complete.");
+          // Unfreeze interaction completely here or trigger next phase
+        } catch (error) {
+          console.error("[Conversation] Error in post-solve:", error);
+        } finally {
+          setActiveDialogue(null, null);
+        }
+      };
+
+      runPostSolve();
+    }
+  }, [triggerPostSolveDialogue, setActiveDialogue]);
+
   const handleInteraction = async () => {
     console.log("[Interaction] Key E pressed. inMagicCircle:", inMagicCircleRef.current, "checkpointReached:", checkpointReachedRef.current);
     
-    // Use REFS (not state) to avoid stale closure bug
     if (inMagicCircleRef.current && !checkpointReachedRef.current) {
-      console.log("[Interaction] Starting wizard conversation...");
+      console.log("[Interaction] Checkpoint reached — showing notification...");
       setCheckpointReached(true);
-      checkpointReachedRef.current = true; // immediately sync ref
-      startBackgroundConversation().catch(err => {
-        console.error("[Interaction] Conversation failed:", err);
-      });
+      checkpointReachedRef.current = true;
+
+      // Show checkpoint toast + prefetch audio in parallel (no wasted time)
+      setShowCheckpointNotif(true);
+      const prefetchPromise = prefetchAllDialogue(DIALOGUE_SEQUENCE);
+
+      // Wait for the notification to be seen (2.5s), then start
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      setShowCheckpointNotif(false);
+
+      // Audio should be ready by now (prefetch ran during the 2.5s)
+      const audioCache = await prefetchPromise;
+      startConversationWithCache(audioCache).catch(console.error);
     }
-    // NOTE: No else-branch here — pressing E outside the circle does nothing
   };
 
-  const startBackgroundConversation = async () => {
-    console.log("[Conversation] Pre-fetching all audio in parallel...");
+  const startConversationWithCache = async (audioCache: Array<HTMLAudioElement | null>) => {
+    console.log("[Conversation] Starting playback...");
     try {
-      // Reset movement state immediately
       moveState.current = { forward: false, backward: false, left: false, right: false, sprint: false };
       setIsMoving(false);
 
-      // ── PHASE 1: Pre-fetch ALL audio simultaneously ──
-      // This runs all API calls in parallel so there is zero lag between lines
-      const audioCache = await prefetchAllDialogue(DIALOGUE_SEQUENCE);
-      console.log("[Conversation] All audio pre-fetched. Starting playback...");
-
-      // ── PHASE 2: Play text + audio perfectly in sync ──
       for (let i = 0; i < DIALOGUE_SEQUENCE.length; i++) {
         const line = DIALOGUE_SEQUENCE[i];
-        const audio = audioCache[i]; // already loaded, zero lag
-
+        const audio = audioCache[i];
         console.log(`[Conversation] Line ${i}: ${line.speaker}`);
-
-        // Show text AND start audio at the exact same moment
         setActiveDialogue(line.text, line.speaker);
-        await playPreloadedAudio(audio); // waits until audio finishes
-
-        // Brief pause between speakers
+        await playPreloadedAudio(audio);
         await new Promise(resolve => setTimeout(resolve, 400));
       }
-
       console.log("[Conversation] Sequence complete.");
     } catch (error) {
       console.error("[Conversation] Error:", error);
     } finally {
       setActiveDialogue(null, null);
+      // Load problem and open the coding challenge overlay
+      setProblem(TWO_SUM_PROBLEM);
+      useCombatStore.getState().setShowCodingChallenge(true);
     }
   };
 
+  // Keep old function name for any catch reference
+  const startBackgroundConversation = async () => {
+    const audioCache = await prefetchAllDialogue(DIALOGUE_SEQUENCE);
+    await startConversationWithCache(audioCache);
+  };
+
   useFrame((state, delta) => {
-    // Freeze movement during dialogue
-    if (isDialogueActive) {
+    // Freeze movement during dialogue OR coding challenge
+    if (isDialogueActive || isCodingChallengeOpen) {
       // Still update camera to maintain focus, but no movement
       camera.position.lerp(
         new THREE.Vector3(

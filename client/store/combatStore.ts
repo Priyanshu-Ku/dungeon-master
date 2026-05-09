@@ -59,10 +59,16 @@ interface CombatState {
   playerLevel: number;
   activeDialogueLine: string | null;
   activeSpeaker: string | null;
+  showCheckpointNotif: boolean;
+  showCodingChallenge: boolean;
+  triggerPostSolveDialogue: boolean;
 
   // Actions
   setCombatPhase: (phase: CombatPhase) => void;
   setActiveDialogue: (line: string | null, speaker: string | null) => void;
+  setShowCheckpointNotif: (show: boolean) => void;
+  setShowCodingChallenge: (show: boolean) => void;
+  setTriggerPostSolveDialogue: (trigger: boolean) => void;
   setCurrentBoss: (boss: Boss | null) => void;
   setSelectedChallenge: (challenge: Challenge | null) => void;
   setHitQuality: (quality: HitQuality) => void;
@@ -93,9 +99,15 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   playerLevel: 1,
   activeDialogueLine: null,
   activeSpeaker: null,
+  showCheckpointNotif: false,
+  showCodingChallenge: false,
+  triggerPostSolveDialogue: false,
 
   setCombatPhase: (phase) => set({ combatPhase: phase }),
   setActiveDialogue: (line, speaker) => set({ activeDialogueLine: line, activeSpeaker: speaker }),
+  setShowCheckpointNotif: (show) => set({ showCheckpointNotif: show }),
+  setShowCodingChallenge: (show) => set({ showCodingChallenge: show }),
+  setTriggerPostSolveDialogue: (trigger) => set({ triggerPostSolveDialogue: trigger }),
   setCurrentBoss: (boss) => set({ currentBoss: boss }),
   setSelectedChallenge: (challenge) => set({ selectedChallenge: challenge }),
   setHitQuality: (quality) => set({ hitQuality: quality }),

@@ -11,8 +11,7 @@
 
 const API_KEY =
   process.env.NEXT_PUBLIC_ELEVANLABS_API_KEY ||
-  process.env.ELEVANLABS_API_KEY ||
-  "sk_3d1d708cebb20871cfdbb3974dd16bf82deddd5dd8f12070";
+  process.env.ELEVANLABS_API_KEY;
 
 // Verified free-tier ElevenLabs voices:
 const WIZARD_VOICE_ID = "TxGEqnHWrfWFTfGW9XjX"; // Josh — deep, authoritative
