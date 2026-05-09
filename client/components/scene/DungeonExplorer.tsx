@@ -77,6 +77,14 @@ const POST_SOLVE_DIALOGUE_SEQUENCE = [
   { speaker: "Wizard", text: "Venture deeper into the Obsidian Depths. The shadowed path to the North-East holds the echoes you seek. Go." }
 ];
 
+const ENEMY_CONFRONTATION_DIALOGUE = [
+  { speaker: "Player", text: "Wake up, coward! Where is my daughter?" },
+  { speaker: "Enemy", text: "Zzz... Wha? A traveler? In the depths?" },
+  { speaker: "Player", text: "I won't ask again. The Wizard spoke of this place. Tell me where she is!" },
+  { speaker: "Enemy", text: "The girl? Oh, the little spark... HAHAHA! You think you can save her?" },
+  { speaker: "Enemy", text: "She's not just 'here', fool. She's being woven into the resonance. The chasm doesn't take... it consumes! You're already too late!" }
+];
+
 // --- GEOMETRY UTILS ---
 function createForestFloorGeo() {
   const geo = new THREE.PlaneGeometry(80, 80, 16, 16);
@@ -318,30 +326,46 @@ export function DungeonExplorer() {
   const setShowDaughterLocation = useCombatStore(state => state.setShowDaughterLocation);
   const { setCombatPhase } = useCombatStore();
   
-  const { wizardCheckpointReached, setWizardCheckpointReached, hasHydrated } = useProgressionStore();
+  const { 
+    wizardCheckpointReached, 
+    setWizardCheckpointReached, 
+    enemyCheckpointReached,
+    setEnemyCheckpointReached,
+    isEnemyConfronted,
+    setIsEnemyConfronted,
+    hasHydrated 
+  } = useProgressionStore();
   const { setProblem } = useProblemStore();
   const { startDialogue } = useDialogueStore();
 
   const [isMoving, setIsMoving] = useState(false);
   const [inMagicCircle, setInMagicCircle] = useState(false);
+  const [inEnemyRange, setInEnemyRange] = useState(false);
   
   const introPlayedRef = useRef(false);
   const inMagicCircleRef = useRef(false);
+  const inEnemyRangeRef = useRef(false);
   const checkpointReachedRef = useRef(false);
+  const enemyCheckpointRef = useRef(false);
+  const enemyConfrontedRef = useRef(false);
 
   // Initialize from persistent checkpoint
   useEffect(() => {
-    if (wizardCheckpointReached) {
-      // Spawn near Wizard instead of start
+    if (enemyCheckpointReached) {
+      // Priority 1: Spawn at Daughter's Camp
+      playerPos.current.set(DAUGHTER_CAMP_POS[0] + 2, 0, DAUGHTER_CAMP_POS[2] + 2);
+      setShowDaughterLocation(true);
+    } else if (wizardCheckpointReached) {
+      // Priority 2: Spawn near Wizard
       playerPos.current.set(-5, 0, -5);
       setShowDaughterLocation(true);
     }
-  }, [wizardCheckpointReached, setShowDaughterLocation]);
+  }, [wizardCheckpointReached, enemyCheckpointReached, setShowDaughterLocation]);
 
   // Initial player thought
   useEffect(() => {
-    if (introPlayedRef.current || wizardCheckpointReached) {
-      console.log("[Intro] Skipping intro audio. introPlayed:", introPlayedRef.current, "checkpointReached:", wizardCheckpointReached);
+    if (introPlayedRef.current || wizardCheckpointReached || enemyCheckpointReached) {
+      console.log("[Intro] Skipping intro audio. introPlayed:", introPlayedRef.current, "wizard:", wizardCheckpointReached, "enemy:", enemyCheckpointReached);
       return;
     }
     introPlayedRef.current = true;
@@ -368,11 +392,14 @@ export function DungeonExplorer() {
       }
     };
     playIntro();
-  }, [wizardCheckpointReached]);
+  }, [wizardCheckpointReached, enemyCheckpointReached]);
 
   // Keep refs in sync with state
   useEffect(() => { inMagicCircleRef.current = inMagicCircle; }, [inMagicCircle]);
+  useEffect(() => { inEnemyRangeRef.current = inEnemyRange; }, [inEnemyRange]);
   useEffect(() => { checkpointReachedRef.current = wizardCheckpointReached; }, [wizardCheckpointReached]);
+  useEffect(() => { enemyCheckpointRef.current = enemyCheckpointReached; }, [enemyCheckpointReached]);
+  useEffect(() => { enemyConfrontedRef.current = isEnemyConfronted; }, [isEnemyConfronted]);
 
   const grassTufts = useMemo(() => {
     return Array.from({ length: 60 }).map((_, i) => {
@@ -499,8 +526,9 @@ export function DungeonExplorer() {
   }, [triggerPostSolveDialogue, setActiveDialogue, setWizardCheckpointReached, setShowDaughterLocation]);
 
   const handleInteraction = async () => {
-    console.log("[Interaction] Key E pressed. inMagicCircle:", inMagicCircleRef.current, "checkpointReached:", checkpointReachedRef.current);
+    console.log("[Interaction] Key E pressed. inMagicCircle:", inMagicCircleRef.current, "inEnemyRange:", inEnemyRangeRef.current);
     
+    // Wizard Interaction
     if (inMagicCircleRef.current && !checkpointReachedRef.current) {
       console.log("[Interaction] Checkpoint reached — showing notification...");
       setWizardCheckpointReached(true);
@@ -517,6 +545,36 @@ export function DungeonExplorer() {
       // Audio should be ready by now (prefetch ran during the 2.5s)
       const audioCache = await prefetchPromise;
       startConversationWithCache(audioCache).catch(console.error);
+    }
+    
+    // Enemy Interaction
+    if (inEnemyRangeRef.current && !enemyConfrontedRef.current) {
+      console.log("[Interaction] Confronting Enemy...");
+      setIsEnemyConfronted(true);
+      enemyConfrontedRef.current = true;
+      
+      const runConfrontation = async () => {
+        try {
+          const audioCache = await prefetchAllDialogue(ENEMY_CONFRONTATION_DIALOGUE);
+          moveState.current = { forward: false, backward: false, left: false, right: false, sprint: false };
+          setIsMoving(false);
+          
+          for (let i = 0; i < ENEMY_CONFRONTATION_DIALOGUE.length; i++) {
+            const line = ENEMY_CONFRONTATION_DIALOGUE[i];
+            const audio = audioCache[i];
+            setActiveDialogue(line.text, line.speaker);
+            await playPreloadedAudio(audio);
+            await new Promise(resolve => setTimeout(resolve, 400));
+          }
+          console.log("[Conversation] Confrontation complete.");
+        } catch (error) {
+          console.error("[Conversation] Error in confrontation:", error);
+        } finally {
+          setActiveDialogue(null, null);
+        }
+      };
+      
+      runConfrontation();
     }
   };
 
@@ -623,10 +681,29 @@ export function DungeonExplorer() {
     camera.position.lerp(targetCamPos, 0.2);
     camera.lookAt(playerPos.current.x, playerPos.current.y + 1.5, playerPos.current.z);
 
-    // Checkpoint detection logic
+    // Checkpoint detection logic (Wizard)
     const circlePos = new THREE.Vector3(-9, 0, -11);
     const distToCircle = playerPos.current.distanceTo(circlePos);
-    setInMagicCircle(distToCircle < 2.5); // Very generous radius for easier interaction
+    setInMagicCircle(distToCircle < 2.5); 
+
+    // Checkpoint detection logic (Enemy Camp)
+    const campPosV3 = new THREE.Vector3(...DAUGHTER_CAMP_POS);
+    const distToCamp = playerPos.current.distanceTo(campPosV3);
+    if (distToCamp < 6 && !enemyCheckpointRef.current) {
+      console.log("[Checkpoint] Enemy camp reached!");
+      setEnemyCheckpointReached(true);
+      setShowCheckpointNotif(true);
+      setTimeout(() => setShowCheckpointNotif(false), 3000);
+    }
+
+    // Enemy Proximity Detection
+    const worldEnemyPos = new THREE.Vector3(
+      DAUGHTER_CAMP_POS[0] + 0.8,
+      0,
+      DAUGHTER_CAMP_POS[2] + 0.8
+    );
+    const distToEnemy = playerPos.current.distanceTo(worldEnemyPos);
+    setInEnemyRange(distToEnemy < 2.5);
   });
 
   const floorGeo = useMemo(createForestFloorGeo, []);
@@ -663,18 +740,13 @@ export function DungeonExplorer() {
       <MagicCircle position={[-9, 0, -11]} />
 
       {/* Guiding Firefly - only show while exploring and before checkpoint (wait for hydration to avoid flicker) */}
-      {!isDialogueActive && !isCodingChallengeOpen && hasHydrated && !wizardCheckpointReached && (
+      {!isDialogueActive && !isCodingChallengeOpen && hasHydrated && !wizardCheckpointReached && !enemyCheckpointReached && (
         <GuidingFirefly playerPos={playerPos} />
       )}
 
-
-
-
-
-
-      {/* Interaction prompt */}
+      {/* Interaction prompts */}
       {inMagicCircle && !wizardCheckpointReached && (
-        <Html center position={[0, 2, 0]}>
+        <Html center position={[-9, 2, -11]}>
           <div style={{ 
             color: 'white', 
             background: 'rgba(0,0,0,0.8)', 
@@ -688,6 +760,20 @@ export function DungeonExplorer() {
         </Html>
       )}
 
+      {inEnemyRange && !isEnemyConfronted && (
+        <Html center position={[DAUGHTER_CAMP_POS[0] + 0.8, 2, DAUGHTER_CAMP_POS[2] + 0.8]}>
+          <div style={{ 
+            color: 'white', 
+            background: 'rgba(0,0,0,0.8)', 
+            padding: '8px 16px', 
+            borderRadius: '4px',
+            border: '1px solid #ff4500',
+            whiteSpace: 'nowrap'
+          }}>
+            Press [E] to Confront
+          </div>
+        </Html>
+      )}
 
       {/* ── FEATURE TREES (replacing pillars) ── */}
       {FEATURE_TREES.map((pos, i) => (
@@ -713,6 +799,7 @@ export function DungeonExplorer() {
             position={[0.8, 0, 0.8]} 
             rotation={[0, Math.PI / 4, 0]} 
             scale={[1.5, 1.5, 1.5]} 
+            isConfronted={isEnemyConfronted}
           />
 
           {/* Dense forest cluster around camp */}

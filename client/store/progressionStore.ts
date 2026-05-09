@@ -6,12 +6,16 @@ interface ProgressionState {
   totalRunsCompleted: number;
   highestDepthReached: number;
   wizardCheckpointReached: boolean;
+  enemyCheckpointReached: boolean;
+  isEnemyConfronted: boolean;
   hasHydrated: boolean;
 
   // Actions
   incrementNGPlus: () => void;
   recordRunCompletion: (depth: number) => void;
   setWizardCheckpointReached: (reached: boolean) => void;
+  setEnemyCheckpointReached: (reached: boolean) => void;
+  setIsEnemyConfronted: (confronted: boolean) => void;
   setHasHydrated: (hydrated: boolean) => void;
   resetProgression: () => void;
 }
@@ -23,6 +27,8 @@ export const useProgressionStore = create<ProgressionState>()(
       totalRunsCompleted: 0,
       highestDepthReached: 0,
       wizardCheckpointReached: false,
+      enemyCheckpointReached: false,
+      isEnemyConfronted: false,
       hasHydrated: false,
 
       incrementNGPlus: () => set((state) => ({ 
@@ -36,13 +42,17 @@ export const useProgressionStore = create<ProgressionState>()(
       })),
 
       setWizardCheckpointReached: (reached) => set({ wizardCheckpointReached: reached }),
+      setEnemyCheckpointReached: (reached: boolean) => set({ enemyCheckpointReached: reached }),
+      setIsEnemyConfronted: (confronted) => set({ isEnemyConfronted: confronted }),
       setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
 
       resetProgression: () => set({ 
         ngPlusCount: 0, 
         totalRunsCompleted: 0, 
         highestDepthReached: 0,
-        wizardCheckpointReached: false
+        wizardCheckpointReached: false,
+        enemyCheckpointReached: false,
+        isEnemyConfronted: false
       })
     }),
     {
