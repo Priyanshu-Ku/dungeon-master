@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
+import { Stars, Html } from '@react-three/drei';
 import { useDungeonStore } from '@/store/dungeonStore';
 import { useCombatStore } from '@/store/combatStore';
 import * as THREE from 'three';
@@ -84,6 +84,31 @@ function ForestTreeWithNode({ position, scale = 1 }: { position: [number, number
   );
 }
 
+// Magic Circle under the Wizard
+function MagicCircle({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Outer Glow Ring */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+        <ringGeometry args={[0.6, 0.7, 64]} />
+        <meshStandardMaterial color="#FFD700" emissive="#FFD700" emissiveIntensity={4} transparent opacity={0.8} />
+      </mesh>
+
+      {/* Inner Decorative Circle */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+        <ringGeometry args={[0.3, 0.4, 32]} />
+        <meshStandardMaterial color="#FFA500" emissive="#FFA500" emissiveIntensity={2} transparent opacity={0.5} />
+      </mesh>
+
+      {/* Vertical Light Beam (The "Line") */}
+      <mesh position={[0, 1, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, 2, 16]} />
+        <meshStandardMaterial color="#FFD700" emissive="#FFD700" emissiveIntensity={10} transparent opacity={0.2} />
+      </mesh>
+    </group>
+  );
+}
+
 // Guiding Firefly that leads the player to the wizard
 function GuidingFirefly({ playerPos }: { playerPos: React.MutableRefObject<THREE.Vector3> }) {
   const fireflyRef = useRef<THREE.Group>(null);
@@ -91,7 +116,7 @@ function GuidingFirefly({ playerPos }: { playerPos: React.MutableRefObject<THREE
 
   useFrame((state, delta) => {
     if (!fireflyRef.current) return;
-    
+
     // Distance to wizard
     const dist = playerPos.current.distanceTo(wizardPos);
 
@@ -106,10 +131,10 @@ function GuidingFirefly({ playerPos }: { playerPos: React.MutableRefObject<THREE
     } else {
       // Vector from player to wizard
       const dirToWizard = new THREE.Vector3().subVectors(wizardPos, playerPos.current).normalize();
-      
+
       // Base center is slightly shifted towards the wizard so it favors that direction
       targetPos.copy(playerPos.current).add(dirToWizard.multiplyScalar(1.5));
-      
+
       // Add a large sweeping orbit so it flies in circles completely around the player
       const orbitRadius = 2.5;
       const orbitSpeed = 2;
@@ -156,12 +181,16 @@ export function DungeonExplorer() {
   const { currentRoomId, getConnectedRooms, initiateTransition } = useDungeonStore();
   const { setCombatPhase } = useCombatStore();
 
-  const [isLocked, setIsLocked] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
+  const [checkpointReached, setCheckpointReached] = useState(false);
+  const [inMagicCircle, setInMagicCircle] = useState(false);
+  const [showCheckpointMessage, setShowCheckpointMessage] = useState(false);
+  const [dialogue, setDialogue] = useState("");
 
   // Camera Orbit State (Smooth Interpolation)
   const targetCameraAngle = useRef({ yaw: 0, pitch: 0.3 });
   const currentCameraAngle = useRef({ yaw: 0, pitch: 0.3 });
+  const cameraDistance = 6.5;
   const playerPos = useRef(new THREE.Vector3(0, 0, 5));
   const playerRot = useRef(new THREE.Euler(0, 0, 0));
   const velocity = useRef(new THREE.Vector3());
@@ -209,9 +238,9 @@ export function DungeonExplorer() {
         case 'KeyE': handleInteraction(); break;
       }
       setIsMoving(
-        moveState.current.forward || 
-        moveState.current.backward || 
-        moveState.current.left || 
+        moveState.current.forward ||
+        moveState.current.backward ||
+        moveState.current.left ||
         moveState.current.right
       );
     };
@@ -224,9 +253,9 @@ export function DungeonExplorer() {
         case 'ShiftLeft': moveState.current.sprint = false; break;
       }
       setIsMoving(
-        moveState.current.forward || 
-        moveState.current.backward || 
-        moveState.current.left || 
+        moveState.current.forward ||
+        moveState.current.backward ||
+        moveState.current.left ||
         moveState.current.right
       );
     };
@@ -239,6 +268,17 @@ export function DungeonExplorer() {
   }, []);
 
   const handleInteraction = () => {
+    // Check if in magic circle for checkpoint
+    if (inMagicCircle && !checkpointReached) {
+      setShowCheckpointMessage(true);
+      setTimeout(() => {
+        setShowCheckpointMessage(false);
+        setCheckpointReached(true);
+        setDialogue("Greetings, traveler. You have found me in the depths of the ancient woods. I have been waiting for you...");
+      }, 2000);
+      return;
+    }
+
     const connected = getConnectedRooms(currentRoomId || '');
     const nearest = connected[0];
     if (nearest) {
@@ -285,17 +325,21 @@ export function DungeonExplorer() {
     currentCameraAngle.current.yaw = THREE.MathUtils.lerp(currentCameraAngle.current.yaw, targetCameraAngle.current.yaw, 0.1);
     currentCameraAngle.current.pitch = THREE.MathUtils.lerp(currentCameraAngle.current.pitch, targetCameraAngle.current.pitch, 0.1);
 
-    const cameraDistance = 8;
-    const offsetX = cameraDistance * Math.sin(currentCameraAngle.current.yaw) * Math.cos(currentCameraAngle.current.pitch);
-    const offsetY = cameraDistance * Math.sin(currentCameraAngle.current.pitch);
-    const offsetZ = cameraDistance * Math.cos(currentCameraAngle.current.yaw) * Math.cos(currentCameraAngle.current.pitch);
-
-    const targetCamPos = playerPos.current.clone().add(new THREE.Vector3(offsetX, offsetY, offsetZ));
+    const targetCamPos = new THREE.Vector3(
+      playerPos.current.x + cameraDistance * Math.sin(currentCameraAngle.current.yaw) * Math.cos(currentCameraAngle.current.pitch),
+      playerPos.current.y + 2.8 + cameraDistance * Math.sin(currentCameraAngle.current.pitch),
+      playerPos.current.z + cameraDistance * Math.cos(currentCameraAngle.current.yaw) * Math.cos(currentCameraAngle.current.pitch)
+    );
 
     if (targetCamPos.y < 0.5) targetCamPos.y = 0.5;
 
     camera.position.lerp(targetCamPos, 0.2);
-    camera.lookAt(playerPos.current.x, playerPos.current.y + 1.2, playerPos.current.z);
+    camera.lookAt(playerPos.current.x, playerPos.current.y + 1.5, playerPos.current.z);
+
+    // Checkpoint detection logic
+    const circlePos = new THREE.Vector3(-9, 0, -11);
+    const distToCircle = playerPos.current.distanceTo(circlePos);
+    setInMagicCircle(distToCircle < 1.0);
   });
 
   const floorGeo = useMemo(createForestFloorGeo, []);
@@ -334,8 +378,102 @@ export function DungeonExplorer() {
       {/* Wizard NPC - Suspended at player height, hidden behind a tree */}
       <Wizard position={[-10, 1.2, -10]} scale={[2.5, 2.5, 2.5]} rotation={[0, Math.PI / 4, 0]} />
 
+      {/* Magic Circle under the Wizard */}
+      <MagicCircle position={[-9, 0, -11]} />
+
       {/* Guiding Firefly */}
       <GuidingFirefly playerPos={playerPos} />
+
+
+      {/* ── INTERACTION PROMPT ── */}
+      {inMagicCircle && !checkpointReached && !showCheckpointMessage && (
+        <Html center>
+          <div style={{
+            background: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            border: '1px solid gold',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            transform: 'translateY(-100px)'
+          }}>
+            Press [E] to Interact
+          </div>
+        </Html>
+      )}
+
+      {/* ── CHECKPOINT MESSAGE ── */}
+      {showCheckpointMessage && (
+        <Html center>
+          <div style={{
+            background: 'rgba(0, 100, 0, 0.8)',
+            color: 'white',
+            padding: '20px 40px',
+            borderRadius: '10px',
+            border: '3px solid #00FF00',
+            fontSize: '24px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            boxShadow: '0 0 30px rgba(0, 255, 0, 0.5)',
+            animation: 'checkpointPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+          }}>
+            <span style={{ fontSize: '32px', display: 'block' }}>✨ CHECKPOINT ✨</span>
+            UNLOCKED
+          </div>
+          <style>{`
+            @keyframes checkpointPop {
+              0% { transform: scale(0.5) translateY(50px); opacity: 0; }
+              100% { transform: scale(1) translateY(0); opacity: 1; }
+            }
+          `}</style>
+        </Html>
+      )}
+
+      {/* ── DIALOGUE UI ── */}
+      {checkpointReached && dialogue && !showCheckpointMessage && (
+        <Html center>
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.8)',
+            color: 'gold',
+            padding: '20px',
+            borderRadius: '10px',
+            border: '2px solid gold',
+            width: '350px',
+            textAlign: 'center',
+            fontFamily: 'serif',
+            fontSize: '18px',
+            boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)',
+            animation: 'fadeIn 0.5s ease-out'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', borderBottom: '1px solid gold', paddingBottom: '5px' }}>The Ancient Wizard</h3>
+            <p style={{ margin: 0, fontStyle: 'italic', lineHeight: '1.4' }}>"{dialogue}"</p>
+            <button
+              onClick={() => setDialogue("")}
+              style={{
+                marginTop: '15px',
+                background: 'gold',
+                border: 'none',
+                padding: '8px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'transform 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              Continue
+            </button>
+          </div>
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(20px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
+        </Html>
+      )}
 
 
       {/* ── FEATURE TREES (replacing pillars) ── */}

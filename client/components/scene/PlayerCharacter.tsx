@@ -42,15 +42,6 @@ export function PlayerCharacter({ position, rotation, moving }: PlayerCharacterP
 
   const { actions } = useAnimations(processedAnimations, group);
 
-  // Fix Mixamo orientation by rotating the Hips bone directly
-  useEffect(() => {
-    scene.traverse((object) => {
-      if (object.isBone && object.name.toLowerCase().includes('hips')) {
-        object.rotation.x = -Math.PI / 2;
-      }
-    });
-  }, [scene]);
-
   useEffect(() => {
     const idleAction = actions['idle'];
     const walkAction = actions['walk'];
@@ -68,7 +59,9 @@ export function PlayerCharacter({ position, rotation, moving }: PlayerCharacterP
 
   return (
     <group ref={group} position={position} rotation={rotation} scale={0.8} dispose={null}>
-      <primitive object={scene} position={[0, 0, 0]} />
+      <group rotation={[-Math.PI / 2, 0, 0]}>
+        <primitive object={scene} position={[0, -0.2, 0]} />
+      </group>
       {/* Dynamic light following player for extra visibility */}
       <pointLight position={[0, 2, 0]} intensity={1} color="#FFF" distance={5} />
     </group>
