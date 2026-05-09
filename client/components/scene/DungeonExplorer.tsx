@@ -13,6 +13,7 @@ import { prefetchAllDialogue, playPreloadedAudio } from '@/utils/voice';
 import { useProblemStore, Problem } from '@/store/problemStore';
 import { useProgressionStore } from '@/store/progressionStore';
 import { EnemyNPC } from './EnemyNPC';
+import { CombatArena } from './CombatArena';
 
 // Two Sum problem presented by the Wizard
 const TWO_SUM_PROBLEM: Problem = {
@@ -60,13 +61,13 @@ function twoSum(nums, target) {
   ],
 };
 
-// --- DIALOGUE SEQUENCE ---
+// --- DIALOGUE SEQUENCES ---
 const DIALOGUE_SEQUENCE = [
-  { speaker: "Wizard", text: "Halt, traveler. You seek the echoes of the lost?" },
-  { speaker: "Player", text: "I seek my daughter. Are you the keeper of this realm?" },
-  { speaker: "Wizard", text: "A heavy burden indeed. The fragments of truth are scattered. But a cipher guards the next path. Prove your worth." },
-  { speaker: "Player", text: "A cipher? Show it to me." },
-  { speaker: "Wizard", text: "Very well. Align the resonance." }
+  { speaker: "Player", text: "Please, wise one, I need your help!" },
+  { speaker: "Wizard", text: "A traveler in these ancient woods? Tell me, what ails your heart?" },
+  { speaker: "Player", text: "My daughter... she was taken from me. I've been searching for days, but the forest is endless. I'm lost and desperate." },
+  { speaker: "Wizard", text: "A heavy burden indeed. The path ahead requires great mental fortitude. I must test if you are strong enough to face what lies ahead." },
+  { speaker: "Wizard", text: "Solve this ancient puzzle to prove your worth. Only then shall I guide you." }
 ];
 
 const POST_SOLVE_DIALOGUE_SEQUENCE = [
@@ -338,7 +339,8 @@ export function DungeonExplorer() {
   const { setProblem } = useProblemStore();
   const { startDialogue } = useDialogueStore();
 
-  // Combat State
+  // Combat/Arena State
+  const [showArena, setShowArena] = useState(false);
   const [isCombatActive, setIsCombatActive] = useState(false);
   const [playerHp, setPlayerHp] = useState(100);
   const [enemyHp, setEnemyHp] = useState(100);
@@ -602,7 +604,16 @@ export function DungeonExplorer() {
             await playPreloadedAudio(audio);
             await new Promise(resolve => setTimeout(resolve, 400));
           }
-          console.log("[Conversation] Confrontation complete. Start Combat!");
+          
+          console.log("[Conversation] Confrontation complete. Transporting to Arena...");
+          
+          // Transport to Arena
+          setShowArena(true);
+          playerPos.current.set(0, 0, 8);
+          enemyPos.current.set(0, 0, -8);
+          playerRot.current.set(0, 0, 0); // Face the enemy
+          enemyRot.current.set(0, Math.PI, 0); // Face the player
+          
           setIsCombatActive(true);
         } catch (error) {
           console.error("[Conversation] Error in confrontation:", error);
@@ -773,23 +784,119 @@ export function DungeonExplorer() {
 
   return (
     <group>
-      {/* Forest Atmosphere Fog — deep woodland green */}
-      <fog attach="fog" args={['#0D1A0A', 8, 40]} />
+      {!showArena ? (
+        <>
+          {/* Forest Atmosphere Fog — deep woodland green */}
+          <fog attach="fog" args={['#0D1A0A', 8, 40]} />
 
-      {/* Forest Floor — mossy organic ground */}
-      <mesh receiveShadow geometry={floorGeo}>
-        <meshStandardMaterial color="#1C3A12" roughness={0.95} metalness={0} />
-      </mesh>
+          {/* Forest Floor — mossy organic ground */}
+          <mesh receiveShadow geometry={floorGeo}>
+            <meshStandardMaterial color="#1C3A12" roughness={0.95} metalness={0} />
+          </mesh>
 
-      {/* Grass tufts scattered on floor */}
-      {grassTufts.map((tuft, i) => (
-        <mesh key={i} position={[tuft.x, 0.15, tuft.z]} rotation={[0, tuft.rotation, 0]}>
-          <coneGeometry args={[0.08, 0.4, 4]} />
-          <meshStandardMaterial color="#2A5C18" roughness={0.9} />
-        </mesh>
-      ))}
+          {/* Grass tufts scattered on floor */}
+          {grassTufts.map((tuft, i) => (
+            <mesh key={i} position={[tuft.x, 0.15, tuft.z]} rotation={[0, tuft.rotation, 0]}>
+              <coneGeometry args={[0.08, 0.4, 4]} />
+              <meshStandardMaterial color="#2A5C18" roughness={0.9} />
+            </mesh>
+          ))}
 
-      {/* Player Model */}
+          {/* Wizard NPC - Suspended at player height, hidden behind a tree */}
+          <Wizard position={[-10, 1.2, -10]} scale={[2.5, 2.5, 2.5]} rotation={[0, Math.PI / 4, 0]} />
+
+          {/* Magic Circle under the Wizard */}
+          <MagicCircle position={[-9, 0, -11]} />
+
+          {/* Guiding Firefly */}
+          {!isDialogueActive && !isCodingChallengeOpen && hasHydrated && !wizardCheckpointReached && !enemyCheckpointReached && (
+            <GuidingFirefly playerPos={playerPos} />
+          )}
+
+          {/* Interaction prompts */}
+          {inMagicCircle && !wizardCheckpointReached && (
+            <Html center position={[-9, 2, -11]}>
+              <div style={{ 
+                color: 'white', 
+                background: 'rgba(0,0,0,0.8)', 
+                padding: '8px 16px', 
+                borderRadius: '4px',
+                border: '1px solid gold',
+                whiteSpace: 'nowrap'
+              }}>
+                Press [E] to Talk
+              </div>
+            </Html>
+          )}
+
+          {inEnemyRange && !isEnemyConfronted && (
+            <Html center position={[enemyPos.current.x, 2, enemyPos.current.z]}>
+              <div style={{ 
+                color: 'white', 
+                background: 'rgba(0,0,0,0.8)', 
+                padding: '8px 16px', 
+                borderRadius: '4px',
+                border: '1px solid #ff4500',
+                whiteSpace: 'nowrap'
+              }}>
+                Press [E] to Confront
+              </div>
+            </Html>
+          )}
+
+          {/* ── FEATURE TREES (replacing pillars) ── */}
+          {FEATURE_TREES.map((pos, i) => (
+            <ForestTreeWithNode key={i} position={pos} scale={1.1} />
+          ))}
+
+          {/* ── PERIMETER TREES for forest density ── */}
+          {PERIMETER_TREES.map(({ pos, s }, i) => (
+            <ForestTree key={`p${i}`} position={pos} scale={s} />
+          ))}
+
+          {/* ── STONES ── */}
+          {STONE_DATA.map((stone, i) => (
+            <ForestStone key={`s${i}`} position={stone.pos} scale={stone.s} rotation={stone.r} />
+          ))}
+
+          {/* ── ENEMY CAMP (Daughter's Location) ── */}
+          {showDaughterLocation && (
+            <group position={DAUGHTER_CAMP_POS}>
+              <Bonfire position={[0, 0, 0]} />
+              <ForestTree position={[-4, 0, -3]} scale={1.2} />
+              <ForestTree position={[4, 0, -4]} scale={0.9} />
+              <ForestTree position={[1, 0, 5]} scale={1.1} />
+              <ForestTree position={[-5, 0, 3]} scale={0.8} />
+              <ForestStone position={[-1.5, 0, -1.5]} scale={0.6} r={0} />
+              <ForestStone position={[1.8, 0, -2]} scale={0.5} r={1} />
+              <ForestStone position={[-3, 0, 4]} scale={0.4} r={3} />
+            </group>
+          )}
+
+          {/* Fallen log accent */}
+          <mesh position={[3, 0.2, 3]} rotation={[0, 0.6, Math.PI / 2]} castShadow>
+            <cylinderGeometry args={[0.25, 0.3, 3.5, 8]} />
+            <meshStandardMaterial color="#3B1F0A" roughness={0.98} metalness={0} />
+          </mesh>
+          <mesh position={[-5, 0.15, 1]} rotation={[0, -0.8, Math.PI / 2]} castShadow>
+            <cylinderGeometry args={[0.2, 0.28, 2.8, 8]} />
+            <meshStandardMaterial color="#3B1F0A" roughness={0.98} metalness={0} />
+          </mesh>
+
+          {/* Stars visible through canopy */}
+          <Stars radius={60} depth={20} count={800} factor={3} saturation={0.3} fade speed={0.5} />
+
+          {/* ── LIGHTING ── */}
+          <ambientLight intensity={0.35} color="#2A4A1A" />
+          <directionalLight position={[15, 30, 10]} intensity={1.2} color="#FFD580" castShadow />
+          <directionalLight position={[-10, 20, -15]} intensity={0.4} color="#A0C8FF" />
+          <hemisphereLight args={['#A8FF78', '#1C3A12', 0.3]} />
+        </>
+      ) : (
+        <CombatArena />
+      )}
+
+      {/* Characters - Rendered in both Forest (if located) and Arena */}
       <PlayerCharacter
         position={[playerPos.current.x, 0, playerPos.current.z]}
         rotation={[0, playerRot.current.y, 0]}
@@ -798,82 +905,7 @@ export function DungeonExplorer() {
         health={playerHp}
       />
 
-      {/* Wizard NPC - Suspended at player height, hidden behind a tree */}
-      <Wizard position={[-10, 1.2, -10]} scale={[2.5, 2.5, 2.5]} rotation={[0, Math.PI / 4, 0]} />
-
-      {/* Magic Circle under the Wizard */}
-      <MagicCircle position={[-9, 0, -11]} />
-
-      {/* Guiding Firefly - only show while exploring and before checkpoint (wait for hydration to avoid flicker) */}
-      {!isDialogueActive && !isCodingChallengeOpen && hasHydrated && !wizardCheckpointReached && !enemyCheckpointReached && (
-        <GuidingFirefly playerPos={playerPos} />
-      )}
-
-      {/* Interaction prompts */}
-      {inMagicCircle && !wizardCheckpointReached && (
-        <Html center position={[-9, 2, -11]}>
-          <div style={{ 
-            color: 'white', 
-            background: 'rgba(0,0,0,0.8)', 
-            padding: '8px 16px', 
-            borderRadius: '4px',
-            border: '1px solid gold',
-            whiteSpace: 'nowrap'
-          }}>
-            Press [E] to Talk
-          </div>
-        </Html>
-      )}
-
-      {inEnemyRange && !isEnemyConfronted && (
-        <Html center position={[enemyPos.current.x, 2, enemyPos.current.z]}>
-          <div style={{ 
-            color: 'white', 
-            background: 'rgba(0,0,0,0.8)', 
-            padding: '8px 16px', 
-            borderRadius: '4px',
-            border: '1px solid #ff4500',
-            whiteSpace: 'nowrap'
-          }}>
-            Press [E] to Confront
-          </div>
-        </Html>
-      )}
-
-      {/* ── FEATURE TREES (replacing pillars) ── */}
-      {FEATURE_TREES.map((pos, i) => (
-        <ForestTreeWithNode key={i} position={pos} scale={1.1} />
-      ))}
-
-      {/* ── PERIMETER TREES for forest density ── */}
-      {PERIMETER_TREES.map(({ pos, s }, i) => (
-        <ForestTree key={`p${i}`} position={pos} scale={s} />
-      ))}
-
-      {/* ── STONES ── */}
-      {STONE_DATA.map((stone, i) => (
-        <ForestStone key={`s${i}`} position={stone.pos} scale={stone.s} rotation={stone.r} />
-      ))}
-
-      {/* ── ENEMY CAMP (Daughter's Location) ── */}
-      {showDaughterLocation && (
-        <group position={DAUGHTER_CAMP_POS}>
-          <Bonfire position={[0, 0, 0]} />
-          
-          {/* Dense forest cluster around camp */}
-          <ForestTree position={[-4, 0, -3]} scale={1.2} />
-          <ForestTree position={[4, 0, -4]} scale={0.9} />
-          <ForestTree position={[1, 0, 5]} scale={1.1} />
-          <ForestTree position={[-5, 0, 3]} scale={0.8} />
-          
-          <ForestStone position={[-1.5, 0, -1.5]} scale={0.6} r={0} />
-          <ForestStone position={[1.8, 0, -2]} scale={0.5} r={1} />
-          <ForestStone position={[-3, 0, 4]} scale={0.4} r={3} />
-        </group>
-      )}
-
-      {/* Enemy Model - Independent of group so it can move freely */}
-      {showDaughterLocation && (
+      {(showDaughterLocation || showArena) && (
         <EnemyNPC 
           position={[enemyPos.current.x, 0, enemyPos.current.z]} 
           rotation={[0, enemyRot.current.y, 0]} 
@@ -884,34 +916,6 @@ export function DungeonExplorer() {
           health={enemyHp}
         />
       )}
-
-      {/* Fallen log accent */}
-      <mesh position={[3, 0.2, 3]} rotation={[0, 0.6, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.25, 0.3, 3.5, 8]} />
-        <meshStandardMaterial color="#3B1F0A" roughness={0.98} metalness={0} />
-      </mesh>
-      <mesh position={[-5, 0.15, 1]} rotation={[0, -0.8, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.2, 0.28, 2.8, 8]} />
-        <meshStandardMaterial color="#3B1F0A" roughness={0.98} metalness={0} />
-      </mesh>
-
-      {/* Stars visible through canopy */}
-      <Stars radius={60} depth={20} count={800} factor={3} saturation={0.3} fade speed={0.5} />
-
-      {/* ── LIGHTING ── */}
-      {/* Ambient — soft moonlit forest */}
-      <ambientLight intensity={0.35} color="#2A4A1A" />
-      {/* Primary sun shaft — warm golden */}
-      <directionalLight
-        position={[15, 30, 10]}
-        intensity={1.2}
-        color="#FFD580"
-        castShadow
-      />
-      {/* Secondary moon fill — cool blue */}
-      <directionalLight position={[-10, 20, -15]} intensity={0.4} color="#A0C8FF" />
-      {/* Ground bounce — subtle green */}
-      <hemisphereLight args={['#A8FF78', '#1C3A12', 0.3]} />
     </group>
   );
 }
