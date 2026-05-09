@@ -62,6 +62,8 @@ interface CombatState {
   showCheckpointNotif: boolean;
   showCodingChallenge: boolean;
   triggerPostSolveDialogue: boolean;
+  playerMapPos: { x: number; z: number };
+  showDaughterLocation: boolean;
 
   // Actions
   setCombatPhase: (phase: CombatPhase) => void;
@@ -69,6 +71,8 @@ interface CombatState {
   setShowCheckpointNotif: (show: boolean) => void;
   setShowCodingChallenge: (show: boolean) => void;
   setTriggerPostSolveDialogue: (trigger: boolean) => void;
+  setPlayerMapPos: (pos: { x: number; z: number }) => void;
+  setShowDaughterLocation: (show: boolean) => void;
   setCurrentBoss: (boss: Boss | null) => void;
   setSelectedChallenge: (challenge: Challenge | null) => void;
   setHitQuality: (quality: HitQuality) => void;
@@ -102,12 +106,16 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   showCheckpointNotif: false,
   showCodingChallenge: false,
   triggerPostSolveDialogue: false,
+  playerMapPos: { x: 0, z: 0 },
+  showDaughterLocation: false,
 
   setCombatPhase: (phase) => set({ combatPhase: phase }),
   setActiveDialogue: (line, speaker) => set({ activeDialogueLine: line, activeSpeaker: speaker }),
   setShowCheckpointNotif: (show) => set({ showCheckpointNotif: show }),
   setShowCodingChallenge: (show) => set({ showCodingChallenge: show }),
   setTriggerPostSolveDialogue: (trigger) => set({ triggerPostSolveDialogue: trigger }),
+  setPlayerMapPos: (pos) => set({ playerMapPos: pos }),
+  setShowDaughterLocation: (show) => set({ showDaughterLocation: show }),
   setCurrentBoss: (boss) => set({ currentBoss: boss }),
   setSelectedChallenge: (challenge) => set({ selectedChallenge: challenge }),
   setHitQuality: (quality) => set({ hitQuality: quality }),

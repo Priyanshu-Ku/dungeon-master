@@ -141,6 +141,16 @@ function ForestTree({ position, scale = 1 }: { position: [number, number, number
   );
 }
 
+// Simple procedural stone component
+function ForestStone({ position, scale = 1, rotation = 0 }: { position: [number, number, number]; scale?: number; rotation?: number }) {
+  return (
+    <mesh position={position} rotation={[0, rotation, 0]} scale={[scale, scale, scale]} castShadow receiveShadow>
+      <dodecahedronGeometry args={[0.5, 1]} />
+      <meshStandardMaterial color="#555" roughness={0.9} metalness={0.1} />
+    </mesh>
+  );
+}
+
 // Main trees with glowing node
 function ForestTreeWithNode({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
   return (
@@ -242,6 +252,13 @@ const FEATURE_TREES: Array<[number, number, number]> = [
   [-8, 0, -8], [8, 0, -8], [-8, 0, 8], [8, 0, 8], [0, 0, -15],
 ];
 
+const STONE_DATA: Array<{ pos: [number, number, number]; s: number; r: number }> = [
+  { pos: [-12, 0, -5], s: 0.9, r: 0.4 }, { pos: [5, 0, 12], s: 1.1, r: 1.2 },
+  { pos: [-5, 0, -15], s: 0.8, r: 2.1 }, { pos: [14, 0, 6], s: 1.2, r: 0.8 },
+  { pos: [-10, 0, 14], s: 0.95, r: 3.1 }, { pos: [12, 0, -12], s: 1.1, r: 1.5 },
+  { pos: [-15, 0, -2], s: 1.3, r: 0.2 }, { pos: [3, 0, -8], s: 0.85, r: 2.7 }
+];
+
 export function DungeonExplorer() {
   const { camera, gl } = useThree();
   const { currentRoomId, getConnectedRooms, initiateTransition } = useDungeonStore();
@@ -260,6 +277,7 @@ export function DungeonExplorer() {
   const isCodingChallengeOpen = useCombatStore(state => state.showCodingChallenge);
   const triggerPostSolveDialogue = useCombatStore(state => state.triggerPostSolveDialogue);
   const setShowCheckpointNotif = useCombatStore(state => state.setShowCheckpointNotif);
+  const setPlayerMapPos = useCombatStore(state => state.setPlayerMapPos);
   const { setProblem } = useProblemStore();
   const { startDialogue } = useDialogueStore();
 
@@ -379,6 +397,7 @@ export function DungeonExplorer() {
             await new Promise(resolve => setTimeout(resolve, 400));
           }
           console.log("[Conversation] Post-solve sequence complete.");
+          useCombatStore.getState().setShowDaughterLocation(true);
           // Unfreeze interaction completely here or trigger next phase
         } catch (error) {
           console.error("[Conversation] Error in post-solve:", error);
@@ -469,6 +488,9 @@ export function DungeonExplorer() {
     const inputX = Number(moveState.current.right) - Number(moveState.current.left);
     const inputZ = Number(moveState.current.forward) - Number(moveState.current.backward);
 
+    // Update player position for minimap
+    setPlayerMapPos({ x: playerPos.current.x, z: playerPos.current.z });
+
     if (inputX !== 0 || inputZ !== 0) {
       const forward = new THREE.Vector3(0, 0, -1);
       forward.applyEuler(new THREE.Euler(0, targetCameraAngle.current.yaw, 0));
@@ -544,8 +566,10 @@ export function DungeonExplorer() {
       {/* Magic Circle under the Wizard */}
       <MagicCircle position={[-9, 0, -11]} />
 
-      {/* Guiding Firefly */}
-      <GuidingFirefly playerPos={playerPos} />
+      {/* Guiding Firefly - only show while exploring */}
+      {!isDialogueActive && !isCodingChallengeOpen && (
+        <GuidingFirefly playerPos={playerPos} />
+      )}
 
 
 
@@ -577,6 +601,11 @@ export function DungeonExplorer() {
       {/* ── PERIMETER TREES for forest density ── */}
       {PERIMETER_TREES.map(({ pos, s }, i) => (
         <ForestTree key={`p${i}`} position={pos} scale={s} />
+      ))}
+
+      {/* ── STONES ── */}
+      {STONE_DATA.map((stone, i) => (
+        <ForestStone key={`s${i}`} position={stone.pos} scale={stone.s} rotation={stone.r} />
       ))}
 
       {/* Fallen log accent */}
