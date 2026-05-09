@@ -708,12 +708,13 @@ export function DungeonExplorer() {
       {showDaughterLocation && (
         <group position={DAUGHTER_CAMP_POS}>
           <Bonfire position={[0, 0, 0]} />
-          {/* Sleeping Enemy */}
+          {/* Sleeping Enemy - Body on ground, head on stone pillow */}
           <EnemyNPC 
-            position={[2, 0, 1]} 
-            rotation={[0, Math.PI / 3, 0]} 
+            position={[0.8, 0, 0.8]} 
+            rotation={[0, Math.PI / 4, 0]} 
             scale={[1.5, 1.5, 1.5]} 
           />
+
           {/* Dense forest cluster around camp */}
           <ForestTree position={[-4, 0, -3]} scale={1.2} />
           <ForestTree position={[4, 0, -4]} scale={0.9} />
@@ -722,7 +723,6 @@ export function DungeonExplorer() {
           
           <ForestStone position={[-1.5, 0, -1.5]} scale={0.6} r={0} />
           <ForestStone position={[1.8, 0, -2]} scale={0.5} r={1} />
-          <ForestStone position={[3, 0, 2]} scale={0.7} r={2} />
           <ForestStone position={[-3, 0, 4]} scale={0.4} r={3} />
         </group>
       )}

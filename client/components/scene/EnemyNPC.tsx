@@ -16,21 +16,29 @@ export function EnemyNPC({ position, rotation = [0, 0, 0], scale = [1, 1, 1] }: 
   const { actions } = useAnimations(animations, group);
 
   useEffect(() => {
-    // Play 'enemydeath' animation to make it look like they are sleeping/lying down
-    if (actions['enemydeath']) {
-      const action = actions['enemydeath'];
-      action.reset().play();
-      // Fast forward to the end of the animation where they are on the ground
-      action.paused = false;
-      action.time = action.getClip().duration;
-      action.paused = true;
-      action.clampWhenFinished = true;
+    const deathAnim = actions['enemydeath'] || actions['Death'] || actions['death'];
+    if (deathAnim) {
+      deathAnim.reset().play();
+      deathAnim.time = deathAnim.getClip().duration * 0.95;
+      deathAnim.setEffectiveTimeScale(0); // Stop at this frame
+      deathAnim.clampWhenFinished = true;
     }
   }, [actions]);
 
   return (
     <group ref={group} position={position} rotation={rotation} scale={scale} dispose={null}>
-      <primitive object={scene} />
+      {/* Small stone under the head (Pillow Stone) */}
+      <mesh position={[0, 0.1, 1.65]} scale={[0.5, 0.2, 0.5]}>
+        <cylinderGeometry args={[0.5, 0.5, 0.5, 8]} />
+        <meshStandardMaterial color="#444" roughness={0.9} />
+      </mesh>
+
+      {/* Face down pose - Body on ground */}
+      <primitive 
+        object={scene} 
+        rotation={[Math.PI / 2, 0, 0.15]} // Slight Y tilt for natural look
+        position={[0, 0, 0]} 
+      />
     </group>
   );
 }
