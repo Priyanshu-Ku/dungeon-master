@@ -7,6 +7,7 @@ import { useDungeonStore } from '@/store/dungeonStore';
 import { useCombatStore } from '@/store/combatStore';
 import * as THREE from 'three';
 import { PlayerCharacter } from './PlayerCharacter';
+import { Wizard } from './Wizard';
 
 // --- GEOMETRY UTILS ---
 function createForestFloorGeo() {
@@ -79,6 +80,57 @@ function ForestTreeWithNode({ position, scale = 1 }: { position: [number, number
   return (
     <group>
       <ForestTree position={position} scale={scale} />
+    </group>
+  );
+}
+
+// Guiding Firefly that leads the player to the wizard
+function GuidingFirefly({ playerPos }: { playerPos: React.MutableRefObject<THREE.Vector3> }) {
+  const fireflyRef = useRef<THREE.Group>(null);
+  const wizardPos = useMemo(() => new THREE.Vector3(-10, 1.2, -10), []);
+
+  useFrame((state, delta) => {
+    if (!fireflyRef.current) return;
+    
+    // Distance to wizard
+    const dist = playerPos.current.distanceTo(wizardPos);
+
+    let targetPos = new THREE.Vector3();
+
+    if (dist < 4) {
+      // If close to wizard, flutter around the wizard
+      targetPos.copy(wizardPos);
+      targetPos.y += 1 + Math.sin(state.clock.elapsedTime * 2) * 0.5;
+      targetPos.x += Math.cos(state.clock.elapsedTime * 1.5) * 1.5;
+      targetPos.z += Math.sin(state.clock.elapsedTime * 1.5) * 1.5;
+    } else {
+      // Vector from player to wizard
+      const dirToWizard = new THREE.Vector3().subVectors(wizardPos, playerPos.current).normalize();
+      
+      // Base center is slightly shifted towards the wizard so it favors that direction
+      targetPos.copy(playerPos.current).add(dirToWizard.multiplyScalar(1.5));
+      
+      // Add a large sweeping orbit so it flies in circles completely around the player
+      const orbitRadius = 2.5;
+      const orbitSpeed = 2;
+      targetPos.x += Math.cos(state.clock.elapsedTime * orbitSpeed) * orbitRadius;
+      targetPos.z += Math.sin(state.clock.elapsedTime * orbitSpeed) * orbitRadius;
+
+      // Add height so it hovers at chest/eye level with smooth bobbing
+      targetPos.y = 1.2 + Math.sin(state.clock.elapsedTime * 3) * 0.5;
+    }
+
+    // Smoothly interpolate to target position
+    fireflyRef.current.position.lerp(targetPos, 3 * delta);
+  });
+
+  return (
+    <group ref={fireflyRef}>
+      <mesh>
+        <sphereGeometry args={[0.08, 16, 16]} />
+        <meshStandardMaterial color="#FFD700" emissive="#FFEA00" emissiveIntensity={5} toneMapped={false} />
+      </mesh>
+      <pointLight color="#FFEA00" intensity={1.5} distance={6} decay={2} />
     </group>
   );
 }
@@ -268,6 +320,12 @@ export function DungeonExplorer() {
         rotation={[0, playerRot.current.y, 0]}
         moving={isMoving}
       />
+
+      {/* Wizard NPC - Suspended at player height, hidden behind a tree */}
+      <Wizard position={[-10, 1.2, -10]} scale={[2.5, 2.5, 2.5]} rotation={[0, Math.PI / 4, 0]} />
+
+      {/* Guiding Firefly */}
+      <GuidingFirefly playerPos={playerPos} />
 
 
       {/* ── FEATURE TREES (replacing pillars) ── */}
