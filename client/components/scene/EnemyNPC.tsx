@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { useGLTF, useAnimations } from '@react-three/drei';
+import { useGLTF, useAnimations, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface EnemyNPCProps {
@@ -9,23 +9,43 @@ interface EnemyNPCProps {
   rotation?: [number, number, number];
   scale?: [number, number, number];
   isConfronted?: boolean;
+  isAttacking?: boolean;
+  isMoving?: boolean;
+  health?: number;
+  maxHealth?: number;
 }
 
-export function EnemyNPC({ position, rotation = [0, 0, 0], scale = [1, 1, 1], isConfronted = false }: EnemyNPCProps) {
+export function EnemyNPC({ 
+  position, 
+  rotation = [0, 0, 0], 
+  scale = [1, 1, 1], 
+  isConfronted = false,
+  isAttacking = false,
+  isMoving = false,
+  health = 100,
+  maxHealth = 100
+}: EnemyNPCProps) {
   const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF('/models/enemy.glb');
   const { actions } = useAnimations(animations, group);
 
   useEffect(() => {
     if (isConfronted) {
-      // Play standing animation
       const idleAnim = actions['enemyidle'] || actions['Idle'] || actions['idle'];
-      if (idleAnim) {
-        Object.values(actions).forEach(a => a?.stop());
-        idleAnim.reset().play();
+      const walkAnim = actions['enemywalk'] || actions['Walk'] || actions['walk'];
+      const attackAnim = actions['enemyattack'] || actions['Attack'] || actions['attack'];
+
+      if (isAttacking && attackAnim) {
+        Object.values(actions).forEach(a => a?.fadeOut(0.2));
+        attackAnim.reset().fadeIn(0.2).play();
+      } else if (isMoving && walkAnim) {
+        Object.values(actions).forEach(a => a?.fadeOut(0.2));
+        walkAnim.reset().fadeIn(0.2).play();
+      } else if (idleAnim) {
+        Object.values(actions).forEach(a => a?.fadeOut(0.2));
+        idleAnim.reset().fadeIn(0.2).play();
       }
     } else {
-      // Play sleeping animation
       const deathAnim = actions['enemydeath'] || actions['Death'] || actions['death'];
       if (deathAnim) {
         deathAnim.reset().play();
@@ -34,10 +54,27 @@ export function EnemyNPC({ position, rotation = [0, 0, 0], scale = [1, 1, 1], is
         deathAnim.clampWhenFinished = true;
       }
     }
-  }, [actions, isConfronted]);
+  }, [actions, isConfronted, isAttacking, isMoving]);
 
   return (
     <group ref={group} position={position} rotation={rotation} scale={scale} dispose={null}>
+      {/* Health Bar */}
+      {isConfronted && health > 0 && (
+        <Html position={[0, 2.5, 0]} center>
+          <div style={{ width: '60px', height: '6px', background: '#333', border: '1px solid #000' }}>
+            <div style={{ 
+              width: `${(health / maxHealth) * 100}%`, 
+              height: '100%', 
+              background: '#ff0000',
+              transition: 'width 0.3s ease-out'
+            }} />
+          </div>
+          <div style={{ color: 'white', fontSize: '10px', textAlign: 'center', marginTop: '2px', fontWeight: 'bold' }}>
+            ENEMY
+          </div>
+        </Html>
+      )}
+
       {/* Stone Pillow only visible when sleeping */}
       {!isConfronted && (
         <mesh position={[0, 0.1, 1.65]} scale={[0.5, 0.2, 0.5]}>

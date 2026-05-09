@@ -1,16 +1,26 @@
 'use client';
 
 import React, { useRef, useEffect, useMemo } from 'react';
-import { useGLTF, useAnimations, useFBX } from '@react-three/drei';
+import { useGLTF, useAnimations, useFBX, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface PlayerCharacterProps {
   position: [number, number, number];
   rotation: [number, number, number];
   moving: boolean;
+  attacking?: boolean;
+  health?: number;
+  maxHealth?: number;
 }
 
-export function PlayerCharacter({ position, rotation, moving }: PlayerCharacterProps) {
+export function PlayerCharacter({ 
+  position, 
+  rotation, 
+  moving, 
+  attacking = false,
+  health = 100,
+  maxHealth = 100
+}: PlayerCharacterProps) {
   const group = useRef<THREE.Group>(null);
   
   // Load the GLB model
@@ -45,20 +55,39 @@ export function PlayerCharacter({ position, rotation, moving }: PlayerCharacterP
   useEffect(() => {
     const idleAction = actions['idle'];
     const walkAction = actions['walk'];
+    const attackAction = actions['attack'];
 
-    if (idleAction && walkAction) {
-      if (moving) {
-        walkAction.reset().fadeIn(0.2).play();
-        idleAction.fadeOut(0.2);
-      } else {
-        idleAction.reset().fadeIn(0.2).play();
-        walkAction.fadeOut(0.2);
-      }
+    if (attacking && attackAction) {
+      Object.values(actions).forEach(a => a?.fadeOut(0.1));
+      attackAction.reset().fadeIn(0.1).play();
+    } else if (moving && walkAction) {
+      walkAction.reset().fadeIn(0.2).play();
+      idleAction?.fadeOut(0.2);
+      attackAction?.fadeOut(0.2);
+    } else if (idleAction) {
+      idleAction.reset().fadeIn(0.2).play();
+      walkAction?.fadeOut(0.2);
+      attackAction?.fadeOut(0.2);
     }
-  }, [moving, actions]);
+  }, [moving, attacking, actions]);
 
   return (
     <group ref={group} position={position} rotation={rotation} scale={0.8} dispose={null}>
+      {/* Health Bar */}
+      <Html position={[0, 2.5, 0]} center>
+        <div style={{ width: '60px', height: '6px', background: '#333', border: '1px solid #000' }}>
+          <div style={{ 
+            width: `${(health / maxHealth) * 100}%`, 
+            height: '100%', 
+            background: '#00ff00',
+            transition: 'width 0.3s ease-out'
+          }} />
+        </div>
+        <div style={{ color: 'white', fontSize: '10px', textAlign: 'center', marginTop: '2px', fontWeight: 'bold' }}>
+          PLAYER
+        </div>
+      </Html>
+
       <group rotation={[-Math.PI / 2, 0, 0]}>
         <primitive object={scene} position={[0, -0.2, 0]} />
       </group>

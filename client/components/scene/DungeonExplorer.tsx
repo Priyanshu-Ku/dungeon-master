@@ -338,6 +338,16 @@ export function DungeonExplorer() {
   const { setProblem } = useProblemStore();
   const { startDialogue } = useDialogueStore();
 
+  // Combat State
+  const [isCombatActive, setIsCombatActive] = useState(false);
+  const [playerHp, setPlayerHp] = useState(100);
+  const [enemyHp, setEnemyHp] = useState(100);
+  const [isPlayerAttacking, setIsPlayerAttacking] = useState(false);
+  const [isEnemyAttacking, setIsEnemyAttacking] = useState(false);
+  const [isEnemyMoving, setIsEnemyMoving] = useState(false);
+  const enemyPos = useRef(new THREE.Vector3(DAUGHTER_CAMP_POS[0] + 0.8, 0, DAUGHTER_CAMP_POS[2] + 0.8));
+  const enemyRot = useRef(new THREE.Euler(0, 0, 0));
+
   const [isMoving, setIsMoving] = useState(false);
   const [inMagicCircle, setInMagicCircle] = useState(false);
   const [inEnemyRange, setInEnemyRange] = useState(false);
@@ -348,6 +358,32 @@ export function DungeonExplorer() {
   const checkpointReachedRef = useRef(false);
   const enemyCheckpointRef = useRef(false);
   const enemyConfrontedRef = useRef(false);
+  const lastAttackTime = useRef(0);
+  const lastEnemyAttackTime = useRef(0);
+
+  // Mouse click for attack
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (!isCombatActive || isPlayerAttacking) return;
+      
+      const now = Date.now();
+      if (now - lastAttackTime.current > 800) { // Attack cooldown
+        setIsPlayerAttacking(true);
+        lastAttackTime.current = now;
+        
+        // Hit detection
+        const dist = playerPos.current.distanceTo(enemyPos.current);
+        if (dist < 2.5) {
+          setEnemyHp(prev => Math.max(0, prev - 15));
+        }
+
+        setTimeout(() => setIsPlayerAttacking(false), 700);
+      }
+    };
+
+    window.addEventListener('mousedown', handleMouseDown);
+    return () => window.removeEventListener('mousedown', handleMouseDown);
+  }, [isCombatActive, isPlayerAttacking]);
 
   // Initialize from persistent checkpoint
   useEffect(() => {
@@ -566,7 +602,8 @@ export function DungeonExplorer() {
             await playPreloadedAudio(audio);
             await new Promise(resolve => setTimeout(resolve, 400));
           }
-          console.log("[Conversation] Confrontation complete.");
+          console.log("[Conversation] Confrontation complete. Start Combat!");
+          setIsCombatActive(true);
         } catch (error) {
           console.error("[Conversation] Error in confrontation:", error);
         } finally {
@@ -618,6 +655,36 @@ export function DungeonExplorer() {
   };
 
   useFrame((state, delta) => {
+    // Enemy Combat AI
+    if (isCombatActive && enemyHp > 0) {
+      const dist = enemyPos.current.distanceTo(playerPos.current);
+      const dir = new THREE.Vector3().subVectors(playerPos.current, enemyPos.current).normalize();
+      
+      if (dist > 1.8) {
+        // Move towards player
+        enemyPos.current.addScaledVector(dir, 4 * delta);
+        if (!isEnemyMoving) setIsEnemyMoving(true);
+        if (isEnemyAttacking) setIsEnemyAttacking(false);
+        
+        // Update rotation
+        enemyRot.current.y = Math.atan2(dir.x, dir.z);
+      } else {
+        // Attack player
+        if (isEnemyMoving) setIsEnemyMoving(false);
+        const now = Date.now();
+        if (now - lastEnemyAttackTime.current > 1500) {
+          setIsEnemyAttacking(true);
+          lastEnemyAttackTime.current = now;
+          setPlayerHp(prev => {
+            const newHp = Math.max(0, prev - 10);
+            console.log("[Combat] Enemy hit Player! Player HP:", newHp);
+            return newHp;
+          });
+          setTimeout(() => setIsEnemyAttacking(false), 800);
+        }
+      }
+    }
+
     // Freeze movement during dialogue OR coding challenge
     if (isDialogueActive || isCodingChallengeOpen) {
       // Still update camera to maintain focus, but no movement
@@ -697,11 +764,7 @@ export function DungeonExplorer() {
     }
 
     // Enemy Proximity Detection
-    const worldEnemyPos = new THREE.Vector3(
-      DAUGHTER_CAMP_POS[0] + 0.8,
-      0,
-      DAUGHTER_CAMP_POS[2] + 0.8
-    );
+    const worldEnemyPos = enemyPos.current;
     const distToEnemy = playerPos.current.distanceTo(worldEnemyPos);
     setInEnemyRange(distToEnemy < 2.5);
   });
@@ -731,6 +794,8 @@ export function DungeonExplorer() {
         position={[playerPos.current.x, 0, playerPos.current.z]}
         rotation={[0, playerRot.current.y, 0]}
         moving={isMoving}
+        attacking={isPlayerAttacking}
+        health={playerHp}
       />
 
       {/* Wizard NPC - Suspended at player height, hidden behind a tree */}
@@ -761,7 +826,7 @@ export function DungeonExplorer() {
       )}
 
       {inEnemyRange && !isEnemyConfronted && (
-        <Html center position={[DAUGHTER_CAMP_POS[0] + 0.8, 2, DAUGHTER_CAMP_POS[2] + 0.8]}>
+        <Html center position={[enemyPos.current.x, 2, enemyPos.current.z]}>
           <div style={{ 
             color: 'white', 
             background: 'rgba(0,0,0,0.8)', 
@@ -794,14 +859,7 @@ export function DungeonExplorer() {
       {showDaughterLocation && (
         <group position={DAUGHTER_CAMP_POS}>
           <Bonfire position={[0, 0, 0]} />
-          {/* Sleeping Enemy - Body on ground, head on stone pillow */}
-          <EnemyNPC 
-            position={[0.8, 0, 0.8]} 
-            rotation={[0, Math.PI / 4, 0]} 
-            scale={[1.5, 1.5, 1.5]} 
-            isConfronted={isEnemyConfronted}
-          />
-
+          
           {/* Dense forest cluster around camp */}
           <ForestTree position={[-4, 0, -3]} scale={1.2} />
           <ForestTree position={[4, 0, -4]} scale={0.9} />
@@ -812,6 +870,19 @@ export function DungeonExplorer() {
           <ForestStone position={[1.8, 0, -2]} scale={0.5} r={1} />
           <ForestStone position={[-3, 0, 4]} scale={0.4} r={3} />
         </group>
+      )}
+
+      {/* Enemy Model - Independent of group so it can move freely */}
+      {showDaughterLocation && (
+        <EnemyNPC 
+          position={[enemyPos.current.x, 0, enemyPos.current.z]} 
+          rotation={[0, enemyRot.current.y, 0]} 
+          scale={[1.5, 1.5, 1.5]} 
+          isConfronted={isEnemyConfronted}
+          isAttacking={isEnemyAttacking}
+          isMoving={isEnemyMoving}
+          health={enemyHp}
+        />
       )}
 
       {/* Fallen log accent */}
