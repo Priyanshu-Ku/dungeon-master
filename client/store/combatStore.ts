@@ -57,9 +57,12 @@ interface CombatState {
   playerMaxMp: number;
   playerXp: number;
   playerLevel: number;
+  activeDialogueLine: string | null;
+  activeSpeaker: string | null;
 
   // Actions
   setCombatPhase: (phase: CombatPhase) => void;
+  setActiveDialogue: (line: string | null, speaker: string | null) => void;
   setCurrentBoss: (boss: Boss | null) => void;
   setSelectedChallenge: (challenge: Challenge | null) => void;
   setHitQuality: (quality: HitQuality) => void;
@@ -88,8 +91,11 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   playerMaxMp: 60,
   playerXp: 0,
   playerLevel: 1,
+  activeDialogueLine: null,
+  activeSpeaker: null,
 
   setCombatPhase: (phase) => set({ combatPhase: phase }),
+  setActiveDialogue: (line, speaker) => set({ activeDialogueLine: line, activeSpeaker: speaker }),
   setCurrentBoss: (boss) => set({ currentBoss: boss }),
   setSelectedChallenge: (challenge) => set({ selectedChallenge: challenge }),
   setHitQuality: (quality) => set({ hitQuality: quality }),

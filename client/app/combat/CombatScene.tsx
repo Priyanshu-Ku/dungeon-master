@@ -48,6 +48,23 @@ import { BOSS_ROSTER, getBossByDepth } from '@/lib/bossRoster';
 import { getProblemsByGimmick } from '@/lib/problemPool';
 import { generateLoot, ItemInstance } from '@/lib/lootSystem';
 
+const TypewriterText = ({ text, speed = 30 }: { text: string, speed?: number }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  
+  useEffect(() => {
+    setDisplayedText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayedText(text.slice(0, i + 1));
+      i++;
+      if (i >= text.length) clearInterval(interval);
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return <span>{displayedText}</span>;
+};
+
 export default function CombatScene() {
   const { 
     combatPhase, setCurrentBoss, setCombatPhase, applyBossRetaliation, addXp, 
@@ -57,6 +74,8 @@ export default function CombatScene() {
   const { 
     initDungeon, currentRoomId, serializeDungeonState, hydrateDungeonState, markRoomCleared 
   } = useDungeonStore();
+
+  const { activeDialogueLine, activeSpeaker } = useCombatStore();
 
   const {
     serializeEquipmentState, hydrateEquipmentState, getEquippedItems, addItem
@@ -234,16 +253,8 @@ export default function CombatScene() {
       <Canvas shadows={activeProfile.shadows} dpr={activeProfile.dpr} style={{ position: 'fixed', inset: 0, zIndex: 0 }}>
         <Suspense fallback={null}>
           <PerspectiveCamera makeDefault position={[0, 1.8, 6]} fov={45} />
-          {combatPhase === 'EXPLORATION' ? <DungeonExplorer /> : (
-            <group>
-              <ambientLight intensity={0.4} />
-              <pointLight position={[10, 10, 10]} intensity={1.5} color="#00E5FF" castShadow={activeProfile.shadows} />
-              <mesh position={[0, 1, 0]} castShadow={activeProfile.shadows} receiveShadow={activeProfile.shadows}>
-                <boxGeometry args={[1.5, 2, 0.8]} />
-                <meshStandardMaterial color="#111" metalness={1} roughness={0.2} />
-              </mesh>
-            </group>
-          )}
+          {/* DungeonExplorer is ALWAYS mounted to prevent black screen re-mounts */}
+          <DungeonExplorer />
           <Environment preset="night" />
 
           {activeProfile.bloom && (
@@ -260,6 +271,66 @@ export default function CombatScene() {
       </Canvas>
 
       <div style={{ position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
+        {/* Subtle Background Dialogue */}
+        <AnimatePresence mode="wait">
+          {activeDialogueLine && (
+            <motion.div 
+              key={activeDialogueLine}
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 1.05 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                position: 'absolute',
+                top: '12%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(2, 2, 5, 0.9)',
+                backdropFilter: 'blur(20px)',
+                color: activeSpeaker === 'Wizard' ? '#FFD700' : '#00E5FF',
+                padding: '32px 48px',
+                borderRadius: '2px',
+                border: `1px solid ${activeSpeaker === 'Wizard' ? 'rgba(255, 215, 0, 0.2)' : 'rgba(0, 229, 255, 0.2)'}`,
+                width: '90%',
+                maxWidth: '750px',
+                textAlign: 'center',
+                boxShadow: '0 40px 100px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.05)',
+                pointerEvents: 'none',
+                zIndex: 100
+              }}
+            >
+              <div style={{ 
+                fontSize: '10px', 
+                letterSpacing: '0.5em', 
+                marginBottom: '20px', 
+                opacity: 0.5,
+                fontWeight: 900,
+                fontFamily: 'var(--font-mono)',
+                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '15px'
+              }}>
+                <div style={{ width: '30px', height: '1px', background: 'currentColor', opacity: 0.3 }} />
+                {activeSpeaker}
+                <div style={{ width: '30px', height: '1px', background: 'currentColor', opacity: 0.3 }} />
+              </div>
+              <p style={{ 
+                fontSize: '24px', 
+                margin: 0, 
+                lineHeight: '1.5',
+                fontFamily: 'var(--font-cinzel)',
+                fontWeight: 400,
+                color: '#E2E8F0',
+                textShadow: '0 2px 10px rgba(0,0,0,0.5)'
+              }}>
+                "<TypewriterText text={activeDialogueLine} />"
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {(combatPhase === 'EXPLORATION' || combatPhase === 'DECISION') && (
           <>
             <Minimap />

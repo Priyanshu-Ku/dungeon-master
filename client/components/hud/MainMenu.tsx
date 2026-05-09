@@ -16,7 +16,12 @@ export function MainMenu() {
   const { ngPlusCount } = useProgressionStore();
   const { unlockedBadgeIds } = useAchievementStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const hasSave = typeof window !== 'undefined' && localStorage.getItem('obsidian_depths_save_v1') !== null;
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   return (
     <div className="ancient-texture" style={{
@@ -48,7 +53,7 @@ export function MainMenu() {
       />
 
       {/* Drifting Dust Particles */}
-      {[...Array(12)].map((_, i) => (
+      {isMounted && [...Array(12)].map((_, i) => (
         <motion.div
           key={i}
           initial={{ 

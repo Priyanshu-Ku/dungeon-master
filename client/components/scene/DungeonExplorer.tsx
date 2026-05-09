@@ -8,6 +8,17 @@ import { useCombatStore } from '@/store/combatStore';
 import * as THREE from 'three';
 import { PlayerCharacter } from './PlayerCharacter';
 import { Wizard } from './Wizard';
+import { useDialogueStore } from '@/store/dialogueStore';
+import { prefetchAllDialogue, playPreloadedAudio } from '@/utils/voice';
+
+// --- DIALOGUE SEQUENCE ---
+const DIALOGUE_SEQUENCE = [
+  { speaker: "Player", text: "Please, wise one, I need your help!" },
+  { speaker: "Wizard", text: "A traveler in these ancient woods? Tell me, what ails your heart?" },
+  { speaker: "Player", text: "My daughter... she was taken from me. I've been searching for days, but the forest is endless. I'm lost and desperate." },
+  { speaker: "Wizard", text: "A heavy burden indeed. The path ahead requires great mental fortitude. I must test if you are strong enough to face what lies ahead." },
+  { speaker: "Wizard", text: "Solve this ancient puzzle to prove your worth. Only then shall I guide you." }
+];
 
 // --- GEOMETRY UTILS ---
 function createForestFloorGeo() {
@@ -184,8 +195,28 @@ export function DungeonExplorer() {
   const [isMoving, setIsMoving] = useState(false);
   const [checkpointReached, setCheckpointReached] = useState(false);
   const [inMagicCircle, setInMagicCircle] = useState(false);
-  const [showCheckpointMessage, setShowCheckpointMessage] = useState(false);
-  const [dialogue, setDialogue] = useState("");
+
+  // Refs to avoid stale closures in event listeners
+  const inMagicCircleRef = useRef(false);
+  const checkpointReachedRef = useRef(false);
+
+  const setActiveDialogue = useCombatStore(state => state.setActiveDialogue);
+  const isDialogueActive = useCombatStore(state => !!state.activeDialogueLine);
+  const { startDialogue } = useDialogueStore();
+
+  // Keep refs in sync with state
+  useEffect(() => { inMagicCircleRef.current = inMagicCircle; }, [inMagicCircle]);
+  useEffect(() => { checkpointReachedRef.current = checkpointReached; }, [checkpointReached]);
+
+  const grassTufts = useMemo(() => {
+    return Array.from({ length: 60 }).map((_, i) => {
+      const angle = (i / 60) * Math.PI * 2;
+      const r = 3 + Math.random() * 16;
+      const x = Math.cos(angle + i * 0.7) * r;
+      const z = Math.sin(angle + i * 1.1) * r;
+      return { x, z, rotation: Math.random() * Math.PI };
+    });
+  }, []);
 
   // Camera Orbit State (Smooth Interpolation)
   const targetCameraAngle = useRef({ yaw: 0, pitch: 0.3 });
@@ -198,7 +229,7 @@ export function DungeonExplorer() {
 
   // Mouse handling
   useEffect(() => {
-    const handleLockChange = () => setIsLocked(document.pointerLockElement === gl.domElement);
+    const handleLockChange = () => {};
     const handleCanvasClick = () => {
       if (document.pointerLockElement !== gl.domElement) {
         gl.domElement.requestPointerLock();
@@ -237,6 +268,7 @@ export function DungeonExplorer() {
         case 'ShiftLeft': moveState.current.sprint = true; break;
         case 'KeyE': handleInteraction(); break;
       }
+      if (isDialogueActive) return; // Prevent state changes during dialogue
       setIsMoving(
         moveState.current.forward ||
         moveState.current.backward ||
@@ -267,30 +299,72 @@ export function DungeonExplorer() {
     };
   }, []);
 
-  const handleInteraction = () => {
-    // Check if in magic circle for checkpoint
-    if (inMagicCircle && !checkpointReached) {
-      setShowCheckpointMessage(true);
-      setTimeout(() => {
-        setShowCheckpointMessage(false);
-        setCheckpointReached(true);
-        setDialogue("Greetings, traveler. You have found me in the depths of the ancient woods. I have been waiting for you...");
-      }, 2000);
-      return;
+  const handleInteraction = async () => {
+    console.log("[Interaction] Key E pressed. inMagicCircle:", inMagicCircleRef.current, "checkpointReached:", checkpointReachedRef.current);
+    
+    // Use REFS (not state) to avoid stale closure bug
+    if (inMagicCircleRef.current && !checkpointReachedRef.current) {
+      console.log("[Interaction] Starting wizard conversation...");
+      setCheckpointReached(true);
+      checkpointReachedRef.current = true; // immediately sync ref
+      startBackgroundConversation().catch(err => {
+        console.error("[Interaction] Conversation failed:", err);
+      });
     }
+    // NOTE: No else-branch here — pressing E outside the circle does nothing
+  };
 
-    const connected = getConnectedRooms(currentRoomId || '');
-    const nearest = connected[0];
-    if (nearest) {
-      if (['COMBAT', 'ELITE', 'BOSS_FINAL'].includes(nearest.type)) {
-        setCombatPhase('BOSS_CINEMATIC');
-      } else {
-        initiateTransition(nearest.id);
+  const startBackgroundConversation = async () => {
+    console.log("[Conversation] Pre-fetching all audio in parallel...");
+    try {
+      // Reset movement state immediately
+      moveState.current = { forward: false, backward: false, left: false, right: false, sprint: false };
+      setIsMoving(false);
+
+      // ── PHASE 1: Pre-fetch ALL audio simultaneously ──
+      // This runs all API calls in parallel so there is zero lag between lines
+      const audioCache = await prefetchAllDialogue(DIALOGUE_SEQUENCE);
+      console.log("[Conversation] All audio pre-fetched. Starting playback...");
+
+      // ── PHASE 2: Play text + audio perfectly in sync ──
+      for (let i = 0; i < DIALOGUE_SEQUENCE.length; i++) {
+        const line = DIALOGUE_SEQUENCE[i];
+        const audio = audioCache[i]; // already loaded, zero lag
+
+        console.log(`[Conversation] Line ${i}: ${line.speaker}`);
+
+        // Show text AND start audio at the exact same moment
+        setActiveDialogue(line.text, line.speaker);
+        await playPreloadedAudio(audio); // waits until audio finishes
+
+        // Brief pause between speakers
+        await new Promise(resolve => setTimeout(resolve, 400));
       }
+
+      console.log("[Conversation] Sequence complete.");
+    } catch (error) {
+      console.error("[Conversation] Error:", error);
+    } finally {
+      setActiveDialogue(null, null);
     }
   };
 
   useFrame((state, delta) => {
+    // Freeze movement during dialogue
+    if (isDialogueActive) {
+      // Still update camera to maintain focus, but no movement
+      camera.position.lerp(
+        new THREE.Vector3(
+          playerPos.current.x + Math.sin(currentCameraAngle.current.yaw) * cameraDistance * Math.cos(currentCameraAngle.current.pitch),
+          playerPos.current.y + Math.sin(currentCameraAngle.current.pitch) * cameraDistance + 1.2,
+          playerPos.current.z + Math.cos(currentCameraAngle.current.yaw) * cameraDistance * Math.cos(currentCameraAngle.current.pitch)
+        ),
+        0.1
+      );
+      camera.lookAt(playerPos.current.x, playerPos.current.y + 1.2, playerPos.current.z);
+      return;
+    }
+
     const speed = moveState.current.sprint ? 12 : 6;
     const damping = 10;
 
@@ -339,7 +413,7 @@ export function DungeonExplorer() {
     // Checkpoint detection logic
     const circlePos = new THREE.Vector3(-9, 0, -11);
     const distToCircle = playerPos.current.distanceTo(circlePos);
-    setInMagicCircle(distToCircle < 1.0);
+    setInMagicCircle(distToCircle < 2.5); // Very generous radius for easier interaction
   });
 
   const floorGeo = useMemo(createForestFloorGeo, []);
@@ -355,18 +429,12 @@ export function DungeonExplorer() {
       </mesh>
 
       {/* Grass tufts scattered on floor */}
-      {Array.from({ length: 60 }).map((_, i) => {
-        const angle = (i / 60) * Math.PI * 2;
-        const r = 3 + Math.random() * 16;
-        const x = Math.cos(angle + i * 0.7) * r;
-        const z = Math.sin(angle + i * 1.1) * r;
-        return (
-          <mesh key={i} position={[x, 0.15, z]} rotation={[0, Math.random() * Math.PI, 0]}>
-            <coneGeometry args={[0.08, 0.4, 4]} />
-            <meshStandardMaterial color="#2A5C18" roughness={0.9} />
-          </mesh>
-        );
-      })}
+      {grassTufts.map((tuft, i) => (
+        <mesh key={i} position={[tuft.x, 0.15, tuft.z]} rotation={[0, tuft.rotation, 0]}>
+          <coneGeometry args={[0.08, 0.4, 4]} />
+          <meshStandardMaterial color="#2A5C18" roughness={0.9} />
+        </mesh>
+      ))}
 
       {/* Player Model */}
       <PlayerCharacter
@@ -385,93 +453,23 @@ export function DungeonExplorer() {
       <GuidingFirefly playerPos={playerPos} />
 
 
-      {/* ── INTERACTION PROMPT ── */}
-      {inMagicCircle && !checkpointReached && !showCheckpointMessage && (
-        <Html center>
-          <div style={{
-            background: 'rgba(0,0,0,0.7)',
-            color: 'white',
-            padding: '10px 20px',
-            borderRadius: '5px',
+
+
+
+
+      {/* Interaction prompt */}
+      {inMagicCircle && !checkpointReached && (
+        <Html center position={[0, 2, 0]}>
+          <div style={{ 
+            color: 'white', 
+            background: 'rgba(0,0,0,0.8)', 
+            padding: '8px 16px', 
+            borderRadius: '4px',
             border: '1px solid gold',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            transform: 'translateY(-100px)'
+            whiteSpace: 'nowrap'
           }}>
-            Press [E] to Interact
+            Press [E] to Talk
           </div>
-        </Html>
-      )}
-
-      {/* ── CHECKPOINT MESSAGE ── */}
-      {showCheckpointMessage && (
-        <Html center>
-          <div style={{
-            background: 'rgba(0, 100, 0, 0.8)',
-            color: 'white',
-            padding: '20px 40px',
-            borderRadius: '10px',
-            border: '3px solid #00FF00',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            boxShadow: '0 0 30px rgba(0, 255, 0, 0.5)',
-            animation: 'checkpointPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-          }}>
-            <span style={{ fontSize: '32px', display: 'block' }}>✨ CHECKPOINT ✨</span>
-            UNLOCKED
-          </div>
-          <style>{`
-            @keyframes checkpointPop {
-              0% { transform: scale(0.5) translateY(50px); opacity: 0; }
-              100% { transform: scale(1) translateY(0); opacity: 1; }
-            }
-          `}</style>
-        </Html>
-      )}
-
-      {/* ── DIALOGUE UI ── */}
-      {checkpointReached && dialogue && !showCheckpointMessage && (
-        <Html center>
-          <div style={{
-            background: 'rgba(0, 0, 0, 0.8)',
-            color: 'gold',
-            padding: '20px',
-            borderRadius: '10px',
-            border: '2px solid gold',
-            width: '350px',
-            textAlign: 'center',
-            fontFamily: 'serif',
-            fontSize: '18px',
-            boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)',
-            animation: 'fadeIn 0.5s ease-out'
-          }}>
-            <h3 style={{ margin: '0 0 10px 0', borderBottom: '1px solid gold', paddingBottom: '5px' }}>The Ancient Wizard</h3>
-            <p style={{ margin: 0, fontStyle: 'italic', lineHeight: '1.4' }}>"{dialogue}"</p>
-            <button
-              onClick={() => setDialogue("")}
-              style={{
-                marginTop: '15px',
-                background: 'gold',
-                border: 'none',
-                padding: '8px 20px',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                transition: 'transform 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              Continue
-            </button>
-          </div>
-          <style>{`
-            @keyframes fadeIn {
-              from { opacity: 0; transform: translateY(20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
         </Html>
       )}
 
