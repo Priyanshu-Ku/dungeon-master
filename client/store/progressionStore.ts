@@ -5,10 +5,14 @@ interface ProgressionState {
   ngPlusCount: number;
   totalRunsCompleted: number;
   highestDepthReached: number;
+  wizardCheckpointReached: boolean;
+  hasHydrated: boolean;
 
   // Actions
   incrementNGPlus: () => void;
   recordRunCompletion: (depth: number) => void;
+  setWizardCheckpointReached: (reached: boolean) => void;
+  setHasHydrated: (hydrated: boolean) => void;
   resetProgression: () => void;
 }
 
@@ -18,6 +22,8 @@ export const useProgressionStore = create<ProgressionState>()(
       ngPlusCount: 0,
       totalRunsCompleted: 0,
       highestDepthReached: 0,
+      wizardCheckpointReached: false,
+      hasHydrated: false,
 
       incrementNGPlus: () => set((state) => ({ 
         ngPlusCount: state.ngPlusCount + 1,
@@ -29,14 +35,21 @@ export const useProgressionStore = create<ProgressionState>()(
         highestDepthReached: Math.max(state.highestDepthReached, depth)
       })),
 
+      setWizardCheckpointReached: (reached) => set({ wizardCheckpointReached: reached }),
+      setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
+
       resetProgression: () => set({ 
         ngPlusCount: 0, 
         totalRunsCompleted: 0, 
-        highestDepthReached: 0 
+        highestDepthReached: 0,
+        wizardCheckpointReached: false
       })
     }),
     {
-      name: 'obsidian_progression_v1'
+      name: 'obsidian_progression_v1',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      }
     }
   )
 );

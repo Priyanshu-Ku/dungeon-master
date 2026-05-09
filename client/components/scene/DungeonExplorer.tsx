@@ -11,6 +11,8 @@ import { Wizard } from './Wizard';
 import { useDialogueStore } from '@/store/dialogueStore';
 import { prefetchAllDialogue, playPreloadedAudio } from '@/utils/voice';
 import { useProblemStore, Problem } from '@/store/problemStore';
+import { useProgressionStore } from '@/store/progressionStore';
+import { EnemyNPC } from './EnemyNPC';
 
 // Two Sum problem presented by the Wizard
 const TWO_SUM_PROBLEM: Problem = {
@@ -185,6 +187,47 @@ function MagicCircle({ position }: { position: [number, number, number] }) {
   );
 }
 
+// Bonfire component with fire effect
+function Bonfire({ position }: { position: [number, number, number] }) {
+  const lightRef = useRef<THREE.PointLight>(null);
+  
+  useFrame((state) => {
+    if (lightRef.current) {
+      // Flickering effect
+      lightRef.current.intensity = 2 + Math.sin(state.clock.elapsedTime * 10) * 0.5;
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* Logs */}
+      <mesh position={[0, 0.1, 0]} rotation={[Math.PI / 2, 0, 0.5]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.8, 6]} />
+        <meshStandardMaterial color="#3d2b1f" />
+      </mesh>
+      <mesh position={[0, 0.1, 0]} rotation={[Math.PI / 2, 0, -0.5]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.8, 6]} />
+        <meshStandardMaterial color="#3d2b1f" />
+      </mesh>
+      
+      {/* Flames (stylized) */}
+      <mesh position={[0, 0.3, 0]}>
+        <coneGeometry args={[0.2, 0.6, 8]} />
+        <meshStandardMaterial color="#ff4500" emissive="#ff4500" emissiveIntensity={5} transparent opacity={0.8} />
+      </mesh>
+      
+      {/* Light Source */}
+      <pointLight ref={lightRef} color="#ff8c00" intensity={2} distance={8} decay={2} castShadow />
+      
+      {/* Emissive glow at base */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <circleGeometry args={[1, 32]} />
+        <meshStandardMaterial color="#ff4500" transparent opacity={0.1} />
+      </mesh>
+    </group>
+  );
+}
+
 // Guiding Firefly that leads the player to the wizard
 function GuidingFirefly({ playerPos }: { playerPos: React.MutableRefObject<THREE.Vector3> }) {
   const fireflyRef = useRef<THREE.Group>(null);
@@ -259,54 +302,77 @@ const STONE_DATA: Array<{ pos: [number, number, number]; s: number; r: number }>
   { pos: [-15, 0, -2], s: 1.3, r: 0.2 }, { pos: [3, 0, -8], s: 0.85, r: 2.7 }
 ];
 
+const DAUGHTER_CAMP_POS: [number, number, number] = [25, 0, -25];
+
 export function DungeonExplorer() {
   const { camera, gl } = useThree();
   const { currentRoomId, getConnectedRooms, initiateTransition } = useDungeonStore();
-  const { setCombatPhase } = useCombatStore();
-
-  const [isMoving, setIsMoving] = useState(false);
-  const [checkpointReached, setCheckpointReached] = useState(false);
-  const [inMagicCircle, setInMagicCircle] = useState(false);
-
-  // Refs to avoid stale closures in event listeners
-  const inMagicCircleRef = useRef(false);
-  const checkpointReachedRef = useRef(false);
-
+  
   const setActiveDialogue = useCombatStore(state => state.setActiveDialogue);
   const isDialogueActive = useCombatStore(state => !!state.activeDialogueLine);
   const isCodingChallengeOpen = useCombatStore(state => state.showCodingChallenge);
   const triggerPostSolveDialogue = useCombatStore(state => state.triggerPostSolveDialogue);
   const setShowCheckpointNotif = useCombatStore(state => state.setShowCheckpointNotif);
   const setPlayerMapPos = useCombatStore(state => state.setPlayerMapPos);
+  const showDaughterLocation = useCombatStore(state => state.showDaughterLocation);
+  const setShowDaughterLocation = useCombatStore(state => state.setShowDaughterLocation);
+  const { setCombatPhase } = useCombatStore();
+  
+  const { wizardCheckpointReached, setWizardCheckpointReached, hasHydrated } = useProgressionStore();
   const { setProblem } = useProblemStore();
   const { startDialogue } = useDialogueStore();
+
+  const [isMoving, setIsMoving] = useState(false);
+  const [inMagicCircle, setInMagicCircle] = useState(false);
+  
   const introPlayedRef = useRef(false);
+  const inMagicCircleRef = useRef(false);
+  const checkpointReachedRef = useRef(false);
+
+  // Initialize from persistent checkpoint
+  useEffect(() => {
+    if (wizardCheckpointReached) {
+      // Spawn near Wizard instead of start
+      playerPos.current.set(-5, 0, -5);
+      setShowDaughterLocation(true);
+    }
+  }, [wizardCheckpointReached, setShowDaughterLocation]);
 
   // Initial player thought
   useEffect(() => {
-    if (introPlayedRef.current) return;
+    if (introPlayedRef.current || wizardCheckpointReached) {
+      console.log("[Intro] Skipping intro audio. introPlayed:", introPlayedRef.current, "checkpointReached:", wizardCheckpointReached);
+      return;
+    }
     introPlayedRef.current = true;
 
     const playIntro = async () => {
-      const mod = await import('@/utils/voice');
-      await mod.playDialogueVoice(
-        "Where am I... what is this insect moving around me?",
-        "Player"
-      );
-      
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      await mod.playDialogueVoice(
-        "Is it guiding me?",
-        "Player"
-      );
+      console.log("[Intro] Starting player monologue...");
+      try {
+        const mod = await import('@/utils/voice');
+        await mod.playDialogueVoice(
+          "Where am I... what is this insect moving around me?",
+          "Player"
+        );
+        
+        console.log("[Intro] Part 1 complete. Waiting 3s...");
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        await mod.playDialogueVoice(
+          "Is it guiding me?",
+          "Player"
+        );
+        console.log("[Intro] Player monologue complete.");
+      } catch (err) {
+        console.error("[Intro] Failed to play intro audio:", err);
+      }
     };
     playIntro();
-  }, []);
+  }, [wizardCheckpointReached]);
 
   // Keep refs in sync with state
   useEffect(() => { inMagicCircleRef.current = inMagicCircle; }, [inMagicCircle]);
-  useEffect(() => { checkpointReachedRef.current = checkpointReached; }, [checkpointReached]);
+  useEffect(() => { checkpointReachedRef.current = wizardCheckpointReached; }, [wizardCheckpointReached]);
 
   const grassTufts = useMemo(() => {
     return Array.from({ length: 60 }).map((_, i) => {
@@ -414,14 +480,13 @@ export function DungeonExplorer() {
           for (let i = 0; i < POST_SOLVE_DIALOGUE_SEQUENCE.length; i++) {
             const line = POST_SOLVE_DIALOGUE_SEQUENCE[i];
             const audio = audioCache[i];
-            console.log(`[Conversation] Line ${i}: ${line.speaker}`);
             setActiveDialogue(line.text, line.speaker);
             await playPreloadedAudio(audio);
             await new Promise(resolve => setTimeout(resolve, 400));
           }
           console.log("[Conversation] Post-solve sequence complete.");
-          useCombatStore.getState().setShowDaughterLocation(true);
-          // Unfreeze interaction completely here or trigger next phase
+          setWizardCheckpointReached(true);
+          setShowDaughterLocation(true);
         } catch (error) {
           console.error("[Conversation] Error in post-solve:", error);
         } finally {
@@ -431,14 +496,14 @@ export function DungeonExplorer() {
 
       runPostSolve();
     }
-  }, [triggerPostSolveDialogue, setActiveDialogue]);
+  }, [triggerPostSolveDialogue, setActiveDialogue, setWizardCheckpointReached, setShowDaughterLocation]);
 
   const handleInteraction = async () => {
     console.log("[Interaction] Key E pressed. inMagicCircle:", inMagicCircleRef.current, "checkpointReached:", checkpointReachedRef.current);
     
     if (inMagicCircleRef.current && !checkpointReachedRef.current) {
       console.log("[Interaction] Checkpoint reached — showing notification...");
-      setCheckpointReached(true);
+      setWizardCheckpointReached(true);
       checkpointReachedRef.current = true;
 
       // Show checkpoint toast + prefetch audio in parallel (no wasted time)
@@ -597,8 +662,8 @@ export function DungeonExplorer() {
       {/* Magic Circle under the Wizard */}
       <MagicCircle position={[-9, 0, -11]} />
 
-      {/* Guiding Firefly - only show while exploring */}
-      {!isDialogueActive && !isCodingChallengeOpen && (
+      {/* Guiding Firefly - only show while exploring and before checkpoint (wait for hydration to avoid flicker) */}
+      {!isDialogueActive && !isCodingChallengeOpen && hasHydrated && !wizardCheckpointReached && (
         <GuidingFirefly playerPos={playerPos} />
       )}
 
@@ -608,7 +673,7 @@ export function DungeonExplorer() {
 
 
       {/* Interaction prompt */}
-      {inMagicCircle && !checkpointReached && (
+      {inMagicCircle && !wizardCheckpointReached && (
         <Html center position={[0, 2, 0]}>
           <div style={{ 
             color: 'white', 
@@ -638,6 +703,29 @@ export function DungeonExplorer() {
       {STONE_DATA.map((stone, i) => (
         <ForestStone key={`s${i}`} position={stone.pos} scale={stone.s} rotation={stone.r} />
       ))}
+
+      {/* ── ENEMY CAMP (Daughter's Location) ── */}
+      {showDaughterLocation && (
+        <group position={DAUGHTER_CAMP_POS}>
+          <Bonfire position={[0, 0, 0]} />
+          {/* Sleeping Enemy */}
+          <EnemyNPC 
+            position={[2, 0, 1]} 
+            rotation={[0, Math.PI / 3, 0]} 
+            scale={[1.5, 1.5, 1.5]} 
+          />
+          {/* Dense forest cluster around camp */}
+          <ForestTree position={[-4, 0, -3]} scale={1.2} />
+          <ForestTree position={[4, 0, -4]} scale={0.9} />
+          <ForestTree position={[1, 0, 5]} scale={1.1} />
+          <ForestTree position={[-5, 0, 3]} scale={0.8} />
+          
+          <ForestStone position={[-1.5, 0, -1.5]} scale={0.6} r={0} />
+          <ForestStone position={[1.8, 0, -2]} scale={0.5} r={1} />
+          <ForestStone position={[3, 0, 2]} scale={0.7} r={2} />
+          <ForestStone position={[-3, 0, 4]} scale={0.4} r={3} />
+        </group>
+      )}
 
       {/* Fallen log accent */}
       <mesh position={[3, 0.2, 3]} rotation={[0, 0.6, Math.PI / 2]} castShadow>
