@@ -3,12 +3,19 @@ import { X, Play, AlertCircle, Scroll, BookOpen, Sparkles, TriangleAlert } from 
 import { Panel, Button } from "./SystemUI";
 
 interface CodingTerminalProps {
+  label: string;
   onClose: () => void;
 }
 
-export function CodingTerminal({ onClose }: CodingTerminalProps) {
+import { useGameStore } from "@/stores/useGameStore";
+
+export function CodingTerminal({ label, onClose }: CodingTerminalProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const addInventoryItem = useGameStore((state) => state.addInventoryItem);
+
+  const isResonance = label === "RESONANCE";
 
   const handleRun = () => {
     setIsRunning(true);
@@ -17,7 +24,12 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
     // Simulate arcane manifestation
     setTimeout(() => {
       setIsRunning(false);
-      setHasError(true);
+      if (isResonance) {
+        setIsSuccess(true);
+        addInventoryItem("Obsidian Sword");
+      } else {
+        setHasError(true);
+      }
     }, 1800);
   };
 
@@ -50,10 +62,10 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
               </div>
               <div>
                 <h2 className="text-[#F0A500] text-2xl tracking-[0.2em] font-black uppercase" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
-                  The Obsidian Obelisk
+                  {isResonance ? "Resonance Chamber" : "The Obsidian Obelisk"}
                 </h2>
                 <span className="text-[#9D93C0] text-[10px] tracking-[0.5em] uppercase font-bold opacity-60">
-                  Oracle of Recursive Truth
+                  {isResonance ? "Divine Link Established" : "Oracle of Recursive Truth"}
                 </span>
               </div>
             </div>
@@ -80,21 +92,34 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
               
               <div className="text-[#9D93C0] font-['Lato'] space-y-6 leading-relaxed">
                 <p className="italic text-lg text-[#E2D9F3]/90">
-                  "The Great Seal of the Stack Overseer demands a sequence of balance..."
+                  {isResonance 
+                    ? '"The soul of the architect resonates with the ancient code..."' 
+                    : '"The Great Seal of the Stack Overseer demands a sequence of balance..."'}
                 </p>
                 <p className="text-[15px]">
-                  Divine a function <span className="text-[#F0A500] font-bold">isValidSequence(arr)</span> that returns <span className="text-[#F0A500]">true</span> if the array strictly alternates between Light (Even) and Shadow (Odd) numbers.
+                  {isResonance 
+                    ? "Prove your mastery by channeling the Resonance. Complete the divine pattern to unlock the legendary Obsidian Sword."
+                    : "Divine a function isValidSequence(arr) that returns true if the array strictly alternates between Light (Even) and Shadow (Odd) numbers."}
                 </p>
                 
                 <div className="bg-[#13111C] p-6 border-l-2 border-[#F0A500]/40 rounded-r-sm space-y-4">
-                  <div className="text-xs">
-                    <span className="text-[#F0A500] block mb-2 uppercase font-bold tracking-widest">Example 1</span>
-                    <code className="text-[#E2D9F3] block">Input: [1, 2, 3, 4] → true</code>
-                  </div>
-                  <div className="text-xs">
-                    <span className="text-[#F0A500] block mb-2 uppercase font-bold tracking-widest">Example 2</span>
-                    <code className="text-[#E2D9F3] block">Input: [1, 3, 2] → false</code>
-                  </div>
+                  {isResonance ? (
+                    <div className="text-xs">
+                      <span className="text-[#00FFD4] block mb-2 uppercase font-bold tracking-widest">Resonance Active</span>
+                      <p className="text-[#E2D9F3]">The Obsidian Sword awaits your command.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-xs">
+                        <span className="text-[#F0A500] block mb-2 uppercase font-bold tracking-widest">Example 1</span>
+                        <code className="text-[#E2D9F3] block">Input: [1, 2, 3, 4] → true</code>
+                      </div>
+                      <div className="text-xs">
+                        <span className="text-[#F0A500] block mb-2 uppercase font-bold tracking-widest">Example 2</span>
+                        <code className="text-[#E2D9F3] block">Input: [1, 3, 2] → false</code>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -179,11 +204,11 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
                   </div>
                   
                   <Button 
-                    variant="primary"
-                    onClick={handleRun}
+                    variant={isSuccess ? "ghost" : "primary"}
+                    onClick={isSuccess ? onClose : handleRun}
                     disabled={isRunning}
                   >
-                    {isRunning ? 'Invoking...' : 'Invoke Spell'}
+                    {isRunning ? 'Invoking...' : isSuccess ? 'Exit Chamber' : 'Invoke Spell'}
                   </Button>
                 </div>
 
@@ -238,7 +263,20 @@ export function CodingTerminal({ onClose }: CodingTerminalProps) {
                     </motion.div>
                   )}
 
-                  {!isRunning && !hasError && (
+                  {!isRunning && isSuccess && (
+                    <motion.div 
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-center p-4"
+                    >
+                      <h4 className="text-[#00FFD4] text-xl font-['Cinzel'] tracking-widest uppercase mb-2">
+                        Resonance Complete
+                      </h4>
+                      <p className="text-[#9D93C0]">The Obsidian Sword has been added to your inventory.</p>
+                    </motion.div>
+                  )}
+
+                  {!isRunning && !hasError && !isSuccess && (
                     <p className="text-[#9D93C0]/60 italic">
                       "The obelisk awaits your command. Divine the solution to pass the trial."
                     </p>

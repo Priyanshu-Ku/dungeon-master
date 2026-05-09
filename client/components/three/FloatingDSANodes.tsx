@@ -3,6 +3,7 @@
 import { useRef, useMemo, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { useGameStore } from "@/stores/useGameStore";
 
 const CUBE_LABELS = ["O(n)", "BFS", "DFS", "DP", "SORT", "HASH", "TREE", "HEAP"];
 const NEON_CYAN = "#00FFD4";
@@ -107,7 +108,7 @@ export function FloatingDSANodes({
       [-1.5, 4, -28],
     ];
 
-    return positions.map((pos, i) => ({
+    const c = positions.map((pos, i) => ({
       id: i,
       position: pos,
       rotationSpeed: [
@@ -119,7 +120,12 @@ export function FloatingDSANodes({
       color: i % 3 === 0 ? NEON_PURPLE : NEON_CYAN,
       label: CUBE_LABELS[i % CUBE_LABELS.length],
     }));
+
+    return c;
   }, []);
+
+  const stats = useGameStore((state) => state.playerStats);
+  const hasResonanceUnlock = stats.badges.length > 0;
 
   return (
     <group>
@@ -130,6 +136,20 @@ export function FloatingDSANodes({
           onClick={(label) => onChallengeActivate?.(label)}
         />
       ))}
+      
+      {hasResonanceUnlock && (
+        <DSANode 
+          data={{
+            id: 999,
+            position: [5, 4, -12], // Hidden alcove position
+            rotationSpeed: [1, 2, 0.5],
+            floatOffset: 0,
+            color: "#00FFD4",
+            label: "RESONANCE"
+          }}
+          onClick={(label) => onChallengeActivate?.(label)}
+        />
+      )}
     </group>
   );
 }

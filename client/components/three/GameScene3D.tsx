@@ -9,23 +9,29 @@ import { SceneLighting } from "./SceneLighting";
 import { NeonGrid } from "./NeonGrid";
 import { DungeonEnvironment } from "./DungeonEnvironment";
 import { PlayerCharacter } from "./PlayerCharacter";
-import { FloatingDSANodes } from "./FloatingDSANodes";
 import { PortalDoor } from "./PortalDoor";
-import { DungeonHUD3D } from "./DungeonHUD3D";
+import { DungeonHUD } from "../DungeonHUD";
+import { useGameStore } from "@/stores/useGameStore";
+import { CodingTerminal } from "../CodingTerminal";
+import { FloatingDSANodes } from "./FloatingDSANodes";
 
 // Set scene background color using R3F hook
 function SceneSetup() {
   const { scene, gl, camera } = useThree();
   useEffect(() => {
-    scene.background = new THREE.Color("#0a0618");
-    gl.toneMappingExposure = 2.5;
-    // Orient camera to look down the corridor (-Z)
-    camera.lookAt(0, 1, -10);
+    // Initialize store from localStorage
+    useGameStore.getState().initialize();
+
+    return () => {
+      console.warn = originalWarn;
+    };
   }, [scene, gl, camera]);
   return null;
 }
 
 export function GameScene3D() {
+  const phase = useGameStore((state) => state.phase);
+  const setPhase = useGameStore((state) => state.setPhase);
   const [activeChallengeLabel, setActiveChallengeLabel] = useState<string | null>(null);
 
   return (
@@ -95,10 +101,20 @@ export function GameScene3D() {
       </Canvas>
 
       {/* ── 2D HUD overlay ── */}
-      <DungeonHUD3D
-        activeChallengeLabel={activeChallengeLabel}
-        onClearChallenge={() => setActiveChallengeLabel(null)}
+      <DungeonHUD 
+        onOpenCoding={() => setPhase("CODING")}
       />
+
+      {/* ── Coding Terminal Slide-in ── */}
+      {phase === "CODING" && (
+        <CodingTerminal 
+          label={activeChallengeLabel || "O(n)"} 
+          onClose={() => {
+            setPhase("EXPLORING");
+            setActiveChallengeLabel(null);
+          }} 
+        />
+      )}
 
       {/* ── Vignette ── */}
       <div

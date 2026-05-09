@@ -3,6 +3,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { Skull, Shield, Sword, Lock, Star, Crown, CheckCircle2, Navigation2 } from "lucide-react";
+import { useGameStore } from "@/stores/useGameStore";
 
 interface RoomNode {
   id: string;
@@ -19,7 +20,11 @@ const ROOMS: RoomNode[] = [
   { id: "3", x: 250, y: 400, type: "loot", label: "Armory", status: "cleared" },
   { id: "4", x: 400, y: 300, type: "monster", label: "Void Chamber", status: "undiscovered" },
   { id: "5", x: 550, y: 300, type: "boss", label: "Abyssal Throne", status: "locked" },
+  { id: "6", x: 400, y: 100, type: "locked", label: "Hidden Vault", status: "locked" },
 ];
+
+const REQUIRED_BADGE_ID = "50-days"; 
+const TEST_UNLOCK = true; 
 
 const CONNECTIONS = [
   { from: "1", to: "2" },
@@ -27,9 +32,15 @@ const CONNECTIONS = [
   { from: "2", to: "4" },
   { from: "3", to: "4" },
   { from: "4", to: "5" },
+  { from: "2", to: "6" },
 ];
 
 export function DungeonMap() {
+  const stats = useGameStore((state) => state.playerStats);
+  const hasResonanceUnlock = TEST_UNLOCK 
+    ? stats.badges.length > 0 
+    : stats.badges.some(b => b.id === REQUIRED_BADGE_ID);
+
   return (
     <div className="w-full h-full relative overflow-hidden bg-[#07060B]/50 rounded-lg border border-[#7C3AED]/10">
       {/* Background Grid/Runes */}
@@ -55,6 +66,8 @@ export function DungeonMap() {
 
         {/* Connections */}
         {CONNECTIONS.map((conn, idx) => {
+          if (conn.to === "6" && !hasResonanceUnlock) return null;
+
           const from = ROOMS.find(r => r.id === conn.from)!;
           const to = ROOMS.find(r => r.id === conn.to)!;
           const isKnown = from.status !== "undiscovered" && to.status !== "undiscovered";
@@ -64,9 +77,9 @@ export function DungeonMap() {
               key={`conn-${idx}`}
               x1={from.x} y1={from.y}
               x2={to.x} y2={to.y}
-              stroke="url(#lineGrad)"
+              stroke={conn.to === "6" ? "#00FFD4" : "url(#lineGrad)"}
               strokeWidth="2"
-              strokeDasharray="6 4"
+              strokeDasharray={conn.to === "6" ? "4 4" : "6 4"}
               initial={{ opacity: 0 }}
               animate={{ 
                 opacity: isKnown ? 1 : 0.1,
@@ -81,9 +94,10 @@ export function DungeonMap() {
         })}
 
         {/* Rooms */}
-        {ROOMS.map((room) => (
-          <RoomIcon key={room.id} room={room} />
-        ))}
+        {ROOMS.map((room) => {
+          if (room.id === "6" && !hasResonanceUnlock) return null;
+          return <RoomIcon key={room.id} room={room} />;
+        })}
       </svg>
     </div>
   );
@@ -97,6 +111,7 @@ function RoomIcon({ room }: { room: RoomNode }) {
   const isBoss = room.type === "boss";
 
   const getColors = () => {
+    if (room.id === "6") return { border: "#00FFD4", glow: "#00FFD4", bg: "#051A18" };
     if (isCurrent) return { border: "#F0A500", glow: "#F0A500", bg: "#1A150A" };
     if (isCleared) return { border: "#7C3AED", glow: "#7C3AED", bg: "#0C0A18" };
     if (isUndiscovered) return { border: "#2D2850", glow: "transparent", bg: "#05040A" };

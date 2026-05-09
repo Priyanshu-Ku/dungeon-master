@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Cinzel, Cinzel_Decorative, Fira_Code, Lato } from "next/font/google";
 import "./globals.css";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { ToastContainer } from "@/components/ui/Toast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -54,9 +56,13 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${lato.variable} ${cinzel.variable} ${cinzelDeco.variable} ${firaCode.variable} h-full`}
+      data-scroll-behavior="smooth"
     >
       <body className="min-h-full flex flex-col bg-[#020408] text-slate-200 antialiased overflow-x-hidden">
-        {children}
+        <ErrorBoundary>
+          {children}
+          <ToastContainer />
+        </ErrorBoundary>
       </body>
     </html>
   );

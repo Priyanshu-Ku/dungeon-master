@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Panel, StatBar, Divider, Button } from "./SystemUI";
 import { DungeonMap } from "./DungeonMap";
+import { useGameStore } from "@/stores/useGameStore";
 
 interface DungeonHUDProps {
   onOpenInventory?: () => void;
@@ -17,16 +18,35 @@ interface DungeonHUDProps {
 }
 
 export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpenSettings }: DungeonHUDProps) {
+  const phase = useGameStore((state) => state.phase);
+  const stats = useGameStore((state) => state.playerStats);
+  const syncLeetCode = useGameStore((state) => state.syncLeetCode);
+
   const [showRetreatConfirm, setShowRetreatConfirm] = useState(false);
-  const [logs] = useState([
+  const [logs, setLogs] = useState([
     { id: "1", text: "Entered Sentinel Hall. The air grows cold.", type: "system" },
     { id: "2", text: "Spectral Knight manifests from the shadows!", type: "combat" },
     { id: "3", text: "You equipped: Obsidian Blade.", type: "item" },
     { id: "4", text: "A heavy silence falls over the ruins.", type: "flavor" },
   ]);
 
+  const hasResonanceUnlock = stats.badges.length > 0; 
+  const [lastUnlockState, setLastUnlockState] = useState(hasResonanceUnlock);
+
+  React.useEffect(() => {
+    if (hasResonanceUnlock && !lastUnlockState) {
+      const resonanceLog = {
+        id: Date.now().toString(),
+        text: "Resonance detected: Achievement recognized. A hidden path opens in the depths.",
+        type: "system"
+      };
+      setLogs(prev => [resonanceLog, ...prev]);
+      setLastUnlockState(true);
+    }
+  }, [hasResonanceUnlock, lastUnlockState]);
+
   return (
-    <div className="absolute inset-0 z-40 bg-[#05040A] flex flex-col font-['Lato'] overflow-hidden select-none">
+    <div className={`absolute inset-0 z-40 flex flex-col font-['Lato'] overflow-hidden select-none transition-all duration-700 ${phase === 'CODING' ? 'opacity-30 pointer-events-none blur-sm' : 'opacity-100 bg-transparent'}`}>
       {/* BACKGROUND ATMOSPHERE */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#7C3AED]/5 blur-[120px] rounded-full animate-pulse" />
@@ -35,30 +55,39 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
 
       {/* HEADER BAR */}
       <header className="h-[52px] w-full bg-[#0C0A18]/80 backdrop-blur-md border-b border-[#F0A500]/30 flex items-center justify-between px-6 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full border border-[#F0A500] bg-[#13102A] overflow-hidden shadow-[0_0_10px_rgba(240,165,0,0.2)]">
+          <motion.div 
+            animate={stats.syncStatus === 'success' ? {
+              boxShadow: ["0 0 10px #7C3AED", "0 0 30px #7C3AED", "0 0 10px #7C3AED"],
+              borderColor: ["#F0A500", "#7C3AED", "#F0A500"]
+            } : {}}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="w-9 h-9 rounded-full border border-[#F0A500] bg-[#13102A] overflow-hidden shadow-[0_0_10px_rgba(240,165,0,0.2)] cursor-pointer"
+            onClick={() => syncLeetCode("priyanshu-ku")}
+          >
             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=CodeWielder" alt="Avatar" className="w-full h-full object-cover" />
+          </motion.div>
+          <div className="flex flex-col">
+            <span className="text-[#F0A500] font-['Cinzel'] text-[14px] tracking-widest font-semibold uppercase drop-shadow-[0_0_8px_rgba(240,165,0,0.4)]">
+              CodeWielder
+            </span>
+            {stats.syncStatus === 'syncing' && <span className="text-[8px] text-[#7C3AED] animate-pulse">Syncing...</span>}
           </div>
-          <span className="text-[#F0A500] font-['Cinzel'] text-[14px] tracking-widest font-semibold uppercase drop-shadow-[0_0_8px_rgba(240,165,0,0.4)]">
-            CodeWielder
-          </span>
-        </div>
 
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-1.5 mr-4">
             <div className="w-7 h-7 rounded-full border border-[#F0A500] flex items-center justify-center text-[10px] font-bold text-[#F0A500] font-['Cinzel'] bg-[#13102A] shadow-inner">
-              3
+              {stats.level}
             </div>
           </div>
           <div className="flex items-center gap-6">
             <div className="w-[130px]">
-              <StatBar type="hp" value={850} max={1000} label="HP" />
+              <StatBar type="hp" value={stats.hp} max={stats.maxHp} label="HP" />
             </div>
             <div className="w-[110px]">
-              <StatBar type="mp" value={220} max={300} label="MP" />
+              <StatBar type="mp" value={stats.mp} max={stats.maxMp} label="MP" />
             </div>
             <div className="w-[150px]">
-              <StatBar type="xp" value={450} max={600} label="XP" />
+              <StatBar type="xp" value={stats.xp} max={stats.maxXp} label="XP" />
             </div>
           </div>
         </div>
@@ -149,7 +178,7 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
           </Panel>
 
           {/* ADVENTURE LOG */}
-          <Panel variant="default" padding="compact" className="h-[150px] bg-[#0C0A18]/60 backdrop-blur-sm flex flex-col border-[#7C3AED]/20">
+          <Panel variant="default" padding="compact" className="h-[150px] flex flex-col border-[#7C3AED]/20">
             <div className="flex items-center justify-between mb-3 px-2 border-b border-[#7C3AED]/10 pb-2">
               <span className="text-[#7C3AED] font-['Cinzel'] text-[10px] tracking-[0.2em] uppercase font-bold flex items-center gap-2">
                 <History size={16} />
@@ -178,7 +207,7 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
         {/* RIGHT SIDEBAR (38%) */}
         <div className="w-[38%] flex flex-col gap-5">
           {/* CARD 1: CURRENT ROOM */}
-          <Panel variant="rune" padding="standard" className="bg-[#13102A] border-[#F87171]/20 hover:border-[#F87171]/40 transition-colors">
+          <Panel variant="rune" padding="standard" className="border-[#F87171]/20 hover:border-[#F87171]/40 transition-colors">
             <div className="flex items-center gap-5 mb-5">
               <div className="w-14 h-14 bg-[#0C0A18] border border-[#F87171]/40 flex items-center justify-center rounded-[2px] text-[#F87171] relative group overflow-hidden">
                 <div className="absolute inset-0 bg-[#F87171]/5 group-hover:bg-[#F87171]/10 transition-colors" />
@@ -198,25 +227,12 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
             </div>
 
             <div className="space-y-3">
-              <div className="flex justify-between items-end px-1">
-                <div className="flex flex-col">
-                  <span className="text-[#F87171] text-[11px] font-bold uppercase tracking-[0.2em]">Spectral Knight</span>
-                  <span className="text-[#4B456A] text-[9px] uppercase mt-0.5">Void Entity</span>
-                </div>
-                <span className="text-[#F87171] text-[12px] font-mono font-bold">80 / 80</span>
-              </div>
-              <div className="h-2.5 w-full bg-[#1A0A0A] rounded-full border border-[#7F1D1D]/50 p-0.5 overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: '100%' }}
-                  className="h-full bg-gradient-to-r from-[#7F1D1D] via-[#DC2626] to-[#F87171] rounded-full" 
-                />
-              </div>
+              <StatBar type="hp" value={80} max={80} label="Spectral Knight" />
             </div>
           </Panel>
 
           {/* CARD 2: ABILITIES */}
-          <Panel variant="stone" padding="standard" className="bg-[#0C0A18]/40 border-white/5">
+          <Panel variant="stone" padding="standard" className="border-white/5">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[#F0A500] font-['Cinzel'] text-[10px] tracking-[0.25em] uppercase font-bold">
                 ⚔️ Martial Arts
@@ -232,7 +248,7 @@ export function DungeonHUD({ onOpenInventory, onOpenCoding, onBackToMenu, onOpen
           </Panel>
 
           {/* CARD 3: DUNGEON PROGRESS */}
-          <Panel variant="default" padding="standard" className="bg-[#13102A] flex-1 flex flex-col border-[#7C3AED]/10 overflow-hidden">
+          <Panel variant="default" padding="standard" className="flex-1 flex flex-col border-[#7C3AED]/10 overflow-hidden">
             <div className="flex items-center justify-between mb-5">
               <span className="text-[#7C3AED] font-['Cinzel'] text-[10px] tracking-[0.25em] uppercase font-bold">
                 🎯 Objectives
