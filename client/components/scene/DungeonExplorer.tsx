@@ -280,6 +280,29 @@ export function DungeonExplorer() {
   const setPlayerMapPos = useCombatStore(state => state.setPlayerMapPos);
   const { setProblem } = useProblemStore();
   const { startDialogue } = useDialogueStore();
+  const introPlayedRef = useRef(false);
+
+  // Initial player thought
+  useEffect(() => {
+    if (introPlayedRef.current) return;
+    introPlayedRef.current = true;
+
+    const playIntro = async () => {
+      const mod = await import('@/utils/voice');
+      await mod.playDialogueVoice(
+        "Where am I... what is this insect moving around me?",
+        "Player"
+      );
+      
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      await mod.playDialogueVoice(
+        "Is it guiding me?",
+        "Player"
+      );
+    };
+    playIntro();
+  }, []);
 
   // Keep refs in sync with state
   useEffect(() => { inMagicCircleRef.current = inMagicCircle; }, [inMagicCircle]);
@@ -454,6 +477,14 @@ export function DungeonExplorer() {
       // Load problem and open the coding challenge overlay
       setProblem(TWO_SUM_PROBLEM);
       useCombatStore.getState().setShowCodingChallenge(true);
+
+      // Play background voiceover for the problem
+      import('@/utils/voice').then(mod => {
+        mod.playDialogueVoice(
+          "Two ancient runes are hidden across this wall of stones. Their combined power must equal the sacred number I seek. Return to me the positions of those two runes — and the passage shall open.",
+          "Wizard"
+        );
+      });
     }
   };
 

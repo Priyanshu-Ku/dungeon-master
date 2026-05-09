@@ -3,9 +3,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { useCombatStore } from '@/store/combatStore';
-import { Compass, User, Sparkles, Trees, Mountain } from 'lucide-react';
+import { Compass, User, Sparkles, Navigation, Globe } from 'lucide-react';
 
-// Hardcoded environmental objects for the map (matching the DungeonExplorer scene)
+const SATELLITE_IMAGE = 'C:\\Users\\priya\\.gemini\\antigravity\\brain\\1a4e1f75-9b9c-4823-bfa7-c8bc1cad71f3\\forest_minimap_texture_1778361592839.png';
+
 const MAP_TREES = [
   { x: -18, z: -18 }, { x: 18, z: -18 }, { x: -18, z: 18 }, { x: 18, z: 18 },
   { x: 0, z: -22 }, { x: -22, z: 0 }, { x: 22, z: 0 }, { x: 0, z: 22 },
@@ -20,109 +21,92 @@ const MAP_STONES = [
 export function Minimap() {
   const { playerMapPos, showDaughterLocation } = useCombatStore();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
-  // Map scale configuration
-  const mapSize = 180;
-  const scale = 3.5; // Zoom level
+  const mapSize = isExpanded ? 500 : 200;
+  const scale = isExpanded ? 10 : 5; 
+  const worldSize = 80; 
+  const viewCenter = mapSize / 2;
 
-  // Center the map on 0,0
-  const centerX = mapSize / 2;
-  const centerY = mapSize / 2;
+  const imageSize = worldSize * scale;
+  const imageX = viewCenter - (playerMapPos.x * scale) - (imageSize / 2);
+  const imageY = viewCenter - (playerMapPos.z * scale) - (imageSize / 2);
 
-  // Convert 3D world coordinates to 2D map coordinates
   const getMapCoords = (x: number, z: number) => ({
-    x: centerX + x * scale,
-    y: centerY + z * scale
+    x: viewCenter + (x - playerMapPos.x) * scale,
+    y: viewCenter + (z - playerMapPos.z) * scale
   });
 
-  const playerPos = getMapCoords(playerMapPos.x, playerMapPos.z);
+  const playerPos = { x: viewCenter, y: viewCenter };
   const wizardPos = getMapCoords(0, 0);
+
+  const toggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isCollapsed) setIsCollapsed(false);
+    else setIsExpanded(!isExpanded);
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20, scale: 0.9 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ 
+        opacity: 1, 
+        scale: 1,
+        width: isExpanded ? '650px' : (isCollapsed ? '52px' : '220px'),
+        height: isExpanded ? '650px' : (isCollapsed ? '52px' : '220px'),
+        left: isExpanded ? '50%' : 'auto',
+        top: isExpanded ? '50%' : '24px',
+        right: isExpanded ? 'auto' : '24px',
+        translateX: isExpanded ? '-50%' : '0%',
+        translateY: isExpanded ? '-50%' : '0%',
+        borderRadius: isExpanded ? '24px' : '50%',
+      }}
       style={{
         position: 'fixed',
-        top: '24px',
-        right: '24px',
-        width: isCollapsed ? '50px' : '220px',
-        height: isCollapsed ? '50px' : '220px',
-        background: 'rgba(4, 6, 12, 0.9)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        borderRadius: isCollapsed ? '50%' : '16px',
-        zIndex: 1000,
+        background: '#050805',
+        border: '4px solid rgba(74, 222, 128, 0.2)',
+        zIndex: isExpanded ? 5000 : 1000,
         overflow: 'hidden',
-        boxShadow: '0 12px 48px rgba(0,0,0,0.9), inset 0 0 40px rgba(0, 229, 255, 0.03)',
+        boxShadow: isExpanded ? '0 0 150px rgba(0,0,0,1)' : '0 12px 64px rgba(0,0,0,0.9)',
         cursor: 'pointer',
         pointerEvents: 'auto',
-        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+        fontFamily: 'var(--font-mono)'
       }}
-      onClick={() => setIsCollapsed(!isCollapsed)}
+      onClick={toggleExpand}
     >
-      {/* Dynamic Header */}
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0, right: 0,
-        height: isCollapsed ? '100%' : '36px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: isCollapsed ? 'center' : 'space-between',
-        padding: isCollapsed ? '0' : '0 14px',
-        background: 'rgba(255, 255, 255, 0.04)',
-        borderBottom: isCollapsed ? 'none' : '1px solid rgba(255,255,255,0.06)',
-        zIndex: 10
-      }}>
-        {!isCollapsed && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00E5FF', boxShadow: '0 0 8px #00E5FF' }} />
-            <span style={{ 
-              fontFamily: 'var(--font-mono)', 
-              fontSize: '10px', 
-              color: '#E2E8F0', 
-              letterSpacing: '0.15em',
-              fontWeight: 700
-            }}>
-              FOREST_DEPTHS
-            </span>
-          </div>
-        )}
-        <Compass size={isCollapsed ? 24 : 14} color={isCollapsed ? "#00E5FF" : "rgba(255,255,255,0.4)"} />
-      </div>
-
+      {/* Satellite Feed Container */}
       {!isCollapsed && (
-        <div style={{ position: 'relative', width: '100%', height: '100%', paddingTop: '36px' }}>
-          {/* Scan Line Animation */}
-          <motion.div
-            animate={{ top: ['0%', '100%'] }}
-            transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
-            style={{
-              position: 'absolute',
-              left: 0, right: 0,
-              height: '2px',
-              background: 'linear-gradient(to right, transparent, rgba(0, 229, 255, 0.3), transparent)',
-              zIndex: 5,
-              pointerEvents: 'none',
-              boxShadow: '0 0 15px rgba(0, 229, 255, 0.2)'
-            }}
-          />
+        <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+          
+          {/* Realistic Texture Layer */}
+          <div style={{
+            position: 'absolute',
+            width: `${imageSize}px`,
+            height: `${imageSize}px`,
+            left: `${imageX}px`,
+            top: `${imageY}px`,
+            backgroundImage: `url("file://${SATELLITE_IMAGE}")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.95,
+            zIndex: 1
+          }} />
 
-          <svg width="100%" height="100%" viewBox={`0 0 ${mapSize} ${mapSize}`} style={{ padding: '12px' }}>
-            {/* Background terrain texture (circles) */}
-            <defs>
-              <radialGradient id="mapGrad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="rgba(0, 229, 255, 0.05)" />
-                <stop offset="100%" stopColor="transparent" />
-              </radialGradient>
-            </defs>
-            <circle cx={centerX} cy={centerY} r={mapSize/2.2} fill="url(#mapGrad)" />
+          {/* HUD Vignette */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(circle, transparent 30%, rgba(0,0,0,0.6) 100%)',
+            zIndex: 10,
+            pointerEvents: 'none'
+          }} />
 
-            {/* Grid Mesh */}
-            {[...Array(9)].map((_, i) => (
+          {/* Grid Lines Overlay */}
+          <svg width="100%" height="100%" viewBox={`0 0 ${mapSize} ${mapSize}`} style={{ position: 'relative', zIndex: 20 }}>
+            {[...Array(11)].map((_, i) => (
               <React.Fragment key={i}>
-                <line x1={0} y1={(mapSize/8) * i} x2={mapSize} y2={(mapSize/8) * i} stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
-                <line x1={(mapSize/8) * i} y1={0} x2={(mapSize/8) * i} y2={mapSize} stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
+                <line x1={0} y1={(mapSize/10) * i} x2={mapSize} y2={(mapSize/10) * i} stroke="rgba(74, 222, 128, 0.1)" strokeWidth="0.5" />
+                <line x1={(mapSize/10) * i} y1={0} x2={(mapSize/10) * i} y2={mapSize} stroke="rgba(74, 222, 128, 0.1)" strokeWidth="0.5" />
               </React.Fragment>
             ))}
 
@@ -130,12 +114,12 @@ export function Minimap() {
             {MAP_STONES.map((stone, i) => {
               const pos = getMapCoords(stone.x, stone.z);
               return (
-                <g key={`stone-${i}`} opacity="0.4">
-                  <path 
-                    d={`M ${pos.x-3} ${pos.y+2} L ${pos.x} ${pos.y-3} L ${pos.x+3} ${pos.y+2} Z`} 
-                    fill="#64748B" 
-                  />
-                </g>
+                <path 
+                  key={`stone-${i}`}
+                  d={`M ${pos.x-3} ${pos.y+2} L ${pos.x} ${pos.y-3} L ${pos.x+3} ${pos.y+2} Z`} 
+                  fill="#94A3B8"
+                  opacity="0.6"
+                />
               );
             })}
 
@@ -143,68 +127,99 @@ export function Minimap() {
             {MAP_TREES.map((tree, i) => {
               const pos = getMapCoords(tree.x, tree.z);
               return (
-                <g key={`tree-${i}`} opacity="0.6">
-                  <circle cx={pos.x} cy={pos.y} r="4" fill="rgba(34, 197, 94, 0.15)" />
-                  <circle cx={pos.x} cy={pos.y} r="1.5" fill="#15803D" />
+                <g key={`tree-${i}`}>
+                  <circle cx={pos.x} cy={pos.y} r="3" fill="#15803D" opacity="0.4" />
+                  <circle cx={pos.x} cy={pos.y} r="1" fill="#22C55E" />
                 </g>
               );
             })}
 
-            {/* Wizard Landmark */}
-            <motion.circle 
-              cx={wizardPos.x} cy={wizardPos.y} r="10" 
-              fill="none" stroke="#7C3AED" strokeWidth="0.5" strokeDasharray="3 2"
-              animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-            />
-            <foreignObject x={wizardPos.x - 7} y={wizardPos.y - 7} width="14" height="14">
-              <Sparkles size={14} color="#7C3AED" style={{ filter: 'drop-shadow(0 0 2px #7C3AED)' }} />
-            </foreignObject>
-
-            {/* Player Character */}
-            <g>
-              <motion.circle 
-                cx={playerPos.x} cy={playerPos.y} r="12" 
-                fill="none" stroke="#00E5FF" strokeWidth="1"
-                animate={{ r: [6, 12], opacity: [0.8, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-              <circle cx={playerPos.x} cy={playerPos.y} r="5" fill="rgba(0, 229, 255, 0.2)" />
-              <circle cx={playerPos.x} cy={playerPos.y} r="2.5" fill="#00E5FF" style={{ filter: 'drop-shadow(0 0 4px #00E5FF)' }} />
-              <foreignObject x={playerPos.x - 8} y={playerPos.y - 18} width="16" height="16">
-                <User size={16} color="#FFF" style={{ filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.8))' }} />
-              </foreignObject>
+            {/* Wizard Marker */}
+            <g transform={`translate(${wizardPos.x}, ${wizardPos.y})`}>
+              <circle r="12" fill="none" stroke="#7C3AED" strokeWidth="1" strokeDasharray="3 3" />
+              <Sparkles size={14} color="#7C3AED" style={{ filter: 'drop-shadow(0 0 5px #7C3AED)' }} />
             </g>
 
-            {/* Daughter Location (Hidden until Wizard reveals it) */}
+            {/* Daughter Marker */}
             {showDaughterLocation && (
-              <g>
-                {(() => {
-                  const dPos = getMapCoords(25, -25);
-                  return (
-                    <>
-                      <motion.circle 
-                        cx={dPos.x} cy={dPos.y} r="10" 
-                        fill="none" stroke="#FF4444" strokeWidth="1"
-                        animate={{ r: [6, 14], opacity: [0.8, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      />
-                      <circle cx={dPos.x} cy={dPos.y} r="4" fill="#FF4444" style={{ filter: 'drop-shadow(0 0 8px #FF4444)' }} />
-                      <text x={dPos.x + 8} y={dPos.y + 4} fill="#FF4444" style={{ fontSize: '8px', fontFamily: 'var(--font-cinzel)', fontWeight: 'bold' }}>
-                        DAUGHTER?
-                      </text>
-                    </>
-                  );
-                })()}
+              <g transform={`translate(${getMapCoords(25, -25).x}, ${getMapCoords(25, -25).y})`}>
+                <motion.circle 
+                  r="14" fill="none" stroke="#EF4444" strokeWidth="1"
+                  animate={{ r: [8, 16], opacity: [0.8, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+                <circle r="4" fill="#EF4444" style={{ filter: 'drop-shadow(0 0 10px #EF4444)' }} />
+                <text x="10" y="4" fill="#EF4444" style={{ fontSize: '10px', fontWeight: 900 }}>RESONANCE_LOCK</text>
               </g>
             )}
 
-            {/* Info Legend */}
-            <g transform={`translate(10, ${mapSize - 15})`}>
-              <text fill="rgba(255,255,255,0.4)" style={{ fontSize: '7px', fontFamily: 'var(--font-mono)' }}>
-                X:{Math.round(playerMapPos.x)} Z:{Math.round(playerMapPos.z)}
-              </text>
+            {/* Player Marker */}
+            <g transform={`translate(${playerPos.x}, ${playerPos.y})`}>
+              <motion.circle 
+                r="16" fill="none" stroke="#4ADE80" strokeWidth="1"
+                animate={{ r: [10, 20], opacity: [0.5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <circle r="5" fill="#4ADE80" style={{ filter: 'drop-shadow(0 0 10px #4ADE80)' }} />
+              <Navigation size={12} color="#FFF" style={{ transform: 'translate(-6px, -6px)' }} />
             </g>
           </svg>
+
+          {/* Header Overlay */}
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0,
+            height: '32px',
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 16px',
+            zIndex: 30
+          }}>
+            <Globe size={14} color="#4ADE80" />
+            <span style={{ fontSize: '9px', color: '#4ADE80', fontWeight: 900 }}>GPS_LIVE</span>
+          </div>
+
+          {/* Expanded Sidebar Data */}
+          {isExpanded && (
+            <>
+              <div style={{
+                position: 'absolute',
+                bottom: '30px', left: '30px',
+                padding: '16px',
+                background: 'rgba(0,0,0,0.85)',
+                borderRadius: '8px',
+                border: '1px solid #4ADE80',
+                color: '#4ADE80',
+                fontSize: '11px',
+                zIndex: 40
+              }}>
+                <div style={{ marginBottom: '5px' }}>X: {Math.round(playerMapPos.x)}</div>
+                <div style={{ marginBottom: '5px' }}>Z: {Math.round(playerMapPos.z)}</div>
+                <div style={{ color: '#FFF', opacity: 0.5 }}>SIGNAL: STABLE</div>
+              </div>
+
+              <div style={{
+                position: 'absolute',
+                top: '60px', right: '30px',
+                color: '#FFF',
+                fontSize: '14px',
+                fontWeight: 900,
+                zIndex: 40
+              }}>
+                <div>N</div>
+                <div style={{ width: '1px', height: '40px', background: '#FFF', margin: '4px auto' }} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Collapse State Icon */}
+      {isCollapsed && (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
+          <Compass size={28} color="#4ADE80" />
         </div>
       )}
     </motion.div>
