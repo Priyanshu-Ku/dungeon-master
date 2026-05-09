@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
-import { useGLTF, useAnimations } from '@react-three/drei';
+import React, { useRef, useEffect, useMemo } from 'react';
+import { useGLTF, useAnimations, useFBX } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface PlayerCharacterProps {
@@ -12,39 +12,63 @@ interface PlayerCharacterProps {
 
 export function PlayerCharacter({ position, rotation, moving }: PlayerCharacterProps) {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF('/models/player.glb');
-  const { actions } = useAnimations(animations, group);
+  
+  // Load the GLB model
+  const { scene } = useGLTF('/models/player.glb');
+  
+  // Load external FBX animations
+  const idleFbx = useFBX('/animations/idle.fbx');
+  const walkFbx = useFBX('/animations/walk.fbx');
+  const attackFbx = useFBX('/animations/attack.fbx');
+  const deathFbx = useFBX('/animations/death.fbx');
+  const victoryFbx = useFBX('/animations/victory.fbx');
+  
+  // Process and name animations
+  const processedAnimations = useMemo(() => {
+    const clips = [
+      idleFbx.animations[0].clone(),
+      walkFbx.animations[0].clone(),
+      attackFbx.animations[0].clone(),
+      deathFbx.animations[0].clone(),
+      victoryFbx.animations[0].clone()
+    ];
+    clips[0].name = 'idle';
+    clips[1].name = 'walk';
+    clips[2].name = 'attack';
+    clips[3].name = 'death';
+    clips[4].name = 'victory';
+    return clips;
+  }, [idleFbx, walkFbx, attackFbx, deathFbx, victoryFbx]);
+
+  const { actions } = useAnimations(processedAnimations, group);
+
+  // Fix Mixamo orientation by rotating the Hips bone directly
+  useEffect(() => {
+    scene.traverse((object) => {
+      if (object.isBone && object.name.toLowerCase().includes('hips')) {
+        object.rotation.x = -Math.PI / 2;
+      }
+    });
+  }, [scene]);
 
   useEffect(() => {
-    console.log('Available Animations:', Object.keys(actions));
-  }, [actions]);
+    const idleAction = actions['idle'];
+    const walkAction = actions['walk'];
 
-  useEffect(() => {
-    // Determine the best clips for each state
-    const runClip = Object.keys(actions).find(name => 
-      ['Run', 'running', 'walk', 'walking', 'locomotion'].includes(name.toLowerCase())
-    );
-    const idleClip = Object.keys(actions).find(name => 
-      ['Idle', 'idle_anim', 'wait', 'standing'].includes(name.toLowerCase())
-    );
-
-    if (moving && runClip) {
-      actions[runClip]?.reset().fadeIn(0.2).play();
-      if (idleClip) actions[idleClip]?.fadeOut(0.2);
-    } else if (idleClip) {
-      actions[idleClip]?.reset().fadeIn(0.2).play();
-      if (runClip) actions[runClip]?.fadeOut(0.2);
+    if (idleAction && walkAction) {
+      if (moving) {
+        walkAction.reset().fadeIn(0.2).play();
+        idleAction.fadeOut(0.2);
+      } else {
+        idleAction.reset().fadeIn(0.2).play();
+        walkAction.fadeOut(0.2);
+      }
     }
-    
-    return () => {
-      if (runClip) actions[runClip]?.fadeOut(0.2);
-      if (idleClip) actions[idleClip]?.fadeOut(0.2);
-    };
   }, [moving, actions]);
 
   return (
-    <group ref={group} position={position} rotation={rotation} scale={0.8}>
-      <primitive object={scene} />
+    <group ref={group} position={position} rotation={rotation} scale={0.8} dispose={null}>
+      <primitive object={scene} position={[0, 0, 0]} />
       {/* Dynamic light following player for extra visibility */}
       <pointLight position={[0, 2, 0]} intensity={1} color="#FFF" distance={5} />
     </group>

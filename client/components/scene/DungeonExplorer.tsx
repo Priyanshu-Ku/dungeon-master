@@ -208,7 +208,12 @@ export function DungeonExplorer() {
         case 'ShiftLeft': moveState.current.sprint = true; break;
         case 'KeyE': handleInteraction(); break;
       }
-      setIsMoving(Object.values(moveState.current).some(v => v));
+      setIsMoving(
+        moveState.current.forward || 
+        moveState.current.backward || 
+        moveState.current.left || 
+        moveState.current.right
+      );
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       switch (e.code) {
@@ -218,7 +223,12 @@ export function DungeonExplorer() {
         case 'KeyD': moveState.current.right = false; break;
         case 'ShiftLeft': moveState.current.sprint = false; break;
       }
-      setIsMoving(Object.values(moveState.current).some(v => v));
+      setIsMoving(
+        moveState.current.forward || 
+        moveState.current.backward || 
+        moveState.current.left || 
+        moveState.current.right
+      );
     };
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
