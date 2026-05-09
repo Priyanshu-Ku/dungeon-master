@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera, Environment } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { motion, AnimatePresence } from 'motion/react';
+import * as THREE from 'three';
 
 // Stores
 import { useCombatStore } from '@/store/combatStore';
@@ -250,7 +251,11 @@ export default function CombatScene() {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#050508', position: 'relative', overflow: 'hidden' }}>
       
-      <Canvas shadows={activeProfile.shadows} dpr={activeProfile.dpr} style={{ position: 'fixed', inset: 0, zIndex: 0 }}>
+      <Canvas 
+        shadows={activeProfile.shadows ? { type: THREE.PCFShadowMap } : false} 
+        dpr={activeProfile.dpr} 
+        style={{ position: 'fixed', inset: 0, zIndex: 0 }}
+      >
         <Suspense fallback={null}>
           <PerspectiveCamera makeDefault position={[0, 1.8, 6]} fov={45} />
           {/* DungeonExplorer is ALWAYS mounted to prevent black screen re-mounts */}

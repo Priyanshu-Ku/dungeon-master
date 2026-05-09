@@ -13,7 +13,7 @@ import { ChevronRight, Play, Database, Settings, Calendar, Check, Zap, Award } f
 export function MainMenu() {
   const { setView } = useMetaStore();
   const { startDaily, hasCompletedToday } = useDailyStore();
-  const { ngPlusCount } = useProgressionStore();
+  const { ngPlusCount, resetProgression } = useProgressionStore();
   const { unlockedBadgeIds } = useAchievementStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -165,6 +165,7 @@ export function MainMenu() {
             icon={ngPlusCount > 0 ? <Zap size={18} color="#FFD700" /> : <ChevronRight size={18} />} 
             onClick={() => {
               localStorage.removeItem('obsidian_depths_save_v1');
+              resetProgression();
               setView('CINEMATIC');
             }} 
           />
