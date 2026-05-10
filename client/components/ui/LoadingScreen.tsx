@@ -48,10 +48,10 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
             animate={{ opacity: 1, y: 0 }}
             style={{ textAlign: 'center' }}
           >
-            <h2 style={{ 
-              color: '#FFF', 
-              fontSize: '12px', 
-              letterSpacing: '0.4em', 
+            <h2 style={{
+              color: '#FFF',
+              fontSize: '12px',
+              letterSpacing: '0.4em',
               marginBottom: '40px',
               opacity: 0.8
             }}>

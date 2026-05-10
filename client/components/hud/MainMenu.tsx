@@ -1,295 +1,319 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { useMetaStore } from '@/store/metaStore';
-import { useDailyStore } from '@/store/dailyStore';
-import { useProgressionStore } from '@/store/progressionStore';
 import { useAchievementStore } from '@/store/achievementStore';
-import { audioManager } from '@/lib/audioManager';
 import { SettingsOverlay } from '@/components/hud/SettingsOverlay';
-import { ChevronRight, Play, Database, Settings, Calendar, Check, Zap, Award } from 'lucide-react';
+import { Play, Database, Settings, Award } from 'lucide-react';
 
 export function MainMenu() {
   const { setView } = useMetaStore();
-  const { startDaily, hasCompletedToday } = useDailyStore();
-  const { ngPlusCount, resetProgression } = useProgressionStore();
   const { unlockedBadgeIds } = useAchievementStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const hasSave = typeof window !== 'undefined' && localStorage.getItem('obsidian_depths_save_v1') !== null;
 
-  React.useEffect(() => {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 50, damping: 20 });
+  const springY = useSpring(mouseY, { stiffness: 50, damping: 20 });
+  const rotateX = useTransform(springY, [-500, 500], [4, -4]);
+  const rotateY = useTransform(springX, [-500, 500], [-4, 4]);
+  const glowX = useTransform(springX, (v) => v * 0.04);
+  const glowY = useTransform(springY, (v) => v * 0.04);
+
+  useEffect(() => {
     setIsMounted(true);
-  }, []);
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseX.set(e.clientX - window.innerWidth / 2);
+      mouseY.set(e.clientY - window.innerHeight / 2);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [mouseX, mouseY]);
+
+  if (!isMounted) return <div style={{ background: '#05050A', width: '100vw', height: '100vh' }} />;
 
   return (
-    <div className="ancient-texture" style={{
-      width: '100vw',
-      height: '100vh',
-      background: '#050508',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
-      overflow: 'hidden'
+    <div style={{
+      width: '100vw', height: '100vh',
+      background: 'radial-gradient(ellipse at 60% 50%, #0D0A0F 0%, #05050A 60%, #020203 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      position: 'relative', overflow: 'hidden',
+      fontFamily: "'Cinzel', serif"
     }}>
-      <div className="ancient-vignette" />
+      
+      {/* Deep atmospheric glow — mouse reactive */}
+      <motion.div style={{
+        position: 'absolute', inset: 0, zIndex: 0,
+        x: glowX, y: glowY
+      }}>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '900px', height: '500px',
+          background: 'radial-gradient(ellipse, rgba(212,175,55,0.07) 0%, transparent 70%)',
+          filter: 'blur(80px)', pointerEvents: 'none'
+        }} />
+      </motion.div>
 
-      {/* Atmospheric Flicker */}
-      <motion.div
-        animate={{ 
-          opacity: [0.2, 0.4, 0.2, 0.3, 0.2]
-        }}
-        transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          background: 'radial-gradient(circle at 50% 40%, rgba(124, 58, 237, 0.1) 0%, transparent 60%)',
-          zIndex: 1,
-          pointerEvents: 'none'
-        }}
-      />
+      {/* Ambient particles */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
+        {[...Array(18)].map((_, i) => (
+          <motion.div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              width: `${Math.random() * 2 + 1}px`,
+              height: `${Math.random() * 2 + 1}px`,
+              borderRadius: '50%',
+              background: '#D4AF37',
+              filter: 'blur(1px)',
+            }}
+            animate={{ y: [-20, -60, -20], opacity: [0, 0.6, 0] }}
+            transition={{
+              duration: Math.random() * 6 + 8,
+              repeat: Infinity,
+              delay: Math.random() * 8,
+              ease: 'easeInOut'
+            }}
+          />
+        ))}
+      </div>
 
-      {/* Drifting Dust Particles */}
-      {isMounted && [...Array(12)].map((_, i) => (
+      {/* Thin vignette */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 2,
+        background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,3,0.8) 100%)',
+        pointerEvents: 'none'
+      }} />
+
+      {/* Corner ornaments */}
+      {[
+        { top: 24, left: 24, bt: 'borderTop', bl: 'borderLeft' },
+        { top: 24, right: 24, bt: 'borderTop', bl: 'borderRight' },
+        { bottom: 24, left: 24, bt: 'borderBottom', bl: 'borderLeft' },
+        { bottom: 24, right: 24, bt: 'borderBottom', bl: 'borderRight' },
+      ].map((pos, i) => (
         <motion.div
           key={i}
-          initial={{ 
-            x: Math.random() * 100 + '%', 
-            y: '110vh', 
-            opacity: 0,
-            scale: Math.random() * 0.5 + 0.5
-          }}
-          animate={{ 
-            y: '-10vh',
-            x: (Math.random() * 100 - 10) + '%',
-            opacity: [0, 0.4, 0.4, 0],
-          }}
-          transition={{ 
-            duration: Math.random() * 10 + 10, 
-            repeat: Infinity, 
-            delay: Math.random() * 20,
-            ease: "linear"
-          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 + i * 0.1 }}
           style={{
-            position: 'absolute',
-            width: '2px',
-            height: '2px',
-            background: '#7C3AED',
-            borderRadius: '50%',
-            filter: 'blur(1px)',
-            zIndex: 1,
-            pointerEvents: 'none'
+            position: 'absolute', width: 50, height: 50,
+            [pos.bt]: '2px solid rgba(212,175,55,0.5)',
+            [pos.bl]: '2px solid rgba(212,175,55,0.5)',
+            zIndex: 6, pointerEvents: 'none',
+            ...(pos.top !== undefined ? { top: pos.top } : { bottom: pos.bottom }),
+            ...(pos.left !== undefined ? { left: pos.left } : { right: pos.right }),
           }}
         />
       ))}
 
-      {/* Background Atmosphere */}
+      {/* Main card — subtle 3D tilt */}
       <motion.div
-        animate={{ 
-          scale: [1, 1.2, 1],
-          opacity: [0.1, 0.2, 0.1]
-        }}
-        transition={{ repeat: Infinity, duration: 10, ease: 'easeInOut' }}
-        style={{
-          position: 'absolute',
-          width: '800px',
-          height: '800px',
-          background: 'radial-gradient(circle, #7C3AED 0%, transparent 70%)',
-          filter: 'blur(100px)',
-          zIndex: 0
-        }}
-      />
+        style={{ rotateX, rotateY, perspective: 1200, zIndex: 10 }}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+        className="flex flex-col items-center"
+      >
 
-      <div style={{ zIndex: 10, textAlign: 'center' }}>
+        {/* Decorative top line */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 1.2, delay: 0.3 }}
+          style={{
+            width: 280, height: 1,
+            background: 'linear-gradient(90deg, transparent, #D4AF37, transparent)',
+            marginBottom: 32
+          }}
+        />
+
+        {/* Small label */}
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.45 }}
+          transition={{ delay: 0.5 }}
+          style={{ letterSpacing: 10, fontSize: 11, color: '#D4AF37', marginBottom: 12 }}
         >
-          <h2 className="font-cormorant" style={{ 
-            fontSize: '16px', 
-            letterSpacing: '1.2em', 
-            color: '#7C3AED',
-            marginBottom: '12px',
-            opacity: 0.8
+          ANCIENT CHRONICLES
+        </motion.span>
+
+        {/* Main title */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 1 }}
+          style={{ textAlign: 'center', marginBottom: 8 }}
+        >
+          <h1 style={{
+            fontSize: 'clamp(64px, 10vw, 110px)',
+            fontWeight: 900,
+            letterSpacing: 18,
+            color: '#D4AF37',
+            textShadow: '0 0 60px rgba(212,175,55,0.35), 0 4px 30px rgba(0,0,0,0.9)',
+            lineHeight: 1,
+            marginBottom: 4
           }}>
-            THE VOID CHASM
-          </h2>
-          <h1 className="font-cormorant" style={{ 
-            fontSize: '96px', 
-            letterSpacing: '0.3em', 
-            color: '#FFF',
-            margin: 0,
-            fontWeight: 400,
-            textShadow: '0 0 40px rgba(124, 58, 237, 0.2), 0 0 80px rgba(124, 58, 237, 0.1)'
-          }}>
-            OBSIDIAN DEPTHS
+            OBSIDIAN
           </h1>
-          <p className="font-fira" style={{ 
-            fontSize: '11px', 
-            color: '#4B456A',
-            marginTop: '24px',
-            letterSpacing: '0.4em',
-            textTransform: 'uppercase'
+          <h2 style={{
+            fontSize: 'clamp(28px, 4.5vw, 48px)',
+            letterSpacing: 28,
+            color: 'rgba(139,115,85,0.65)',
+            fontWeight: 400,
+            marginLeft: 28
           }}>
-            VERSION 1.0.4C // SYSTEM READY
-          </p>
+            DEPTHS
+          </h2>
         </motion.div>
 
+        {/* Decorative bottom line */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 1.2 }}
-          style={{ 
-            marginTop: '90px', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '12px',
-            alignItems: 'center' 
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 1.2, delay: 0.6 }}
+          style={{
+            width: 180, height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)',
+            marginTop: 24, marginBottom: 52
           }}
+        />
+
+        {/* Menu Buttons */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.12, delayChildren: 0.8 } } }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 14, width: 380 }}
         >
-          {hasSave && (
-            <MenuButton 
-              label="RESUME DESCENT" 
-              icon={<Play size={18} fill="currentColor" />} 
-              primary 
-              onClick={() => setView('LOADING')} 
+          {hasSave ? (
+            <>
+              <MenuButton
+                icon={<Play size={18} />}
+                label="RESUME DESCENT"
+                onClick={() => setView('CINEMATIC')}
+                primary
+              />
+              <MenuButton
+                icon={<Play size={18} />}
+                label="START DESCENT"
+                onClick={() => setView('CINEMATIC')}
+              />
+            </>
+          ) : (
+            <MenuButton
+              icon={<Play size={18} />}
+              label="START DESCENT"
+              onClick={() => setView('CINEMATIC')}
+              primary
             />
           )}
-          
-          <MenuButton 
-            label={ngPlusCount > 0 ? `NEW DESCENT (NG+ ${ngPlusCount})` : "NEW DESCENT"} 
-            icon={ngPlusCount > 0 ? <Zap size={18} color="#FFD700" /> : <ChevronRight size={18} />} 
-            onClick={() => {
-              localStorage.removeItem('obsidian_depths_save_v1');
-              resetProgression();
-              setView('CINEMATIC');
-            }} 
-          />
-
-          <MenuButton 
-            label={hasCompletedToday() ? "DAILY COMPLETED" : "DAILY PROTOCOL"} 
-            icon={hasCompletedToday() ? <Check size={18} color="#4ADE80" /> : <Calendar size={18} />} 
-            disabled={hasCompletedToday()}
-            onClick={() => {
-              startDaily();
-              setView('LOADING');
-            }} 
-          />
-          
-          <MenuButton 
-            label="CORE SETTINGS" 
-            icon={<Settings size={18} />} 
-            onClick={() => setIsSettingsOpen(true)} 
+          <MenuButton
+            icon={<Settings size={18} />}
+            label="SETTINGS"
+            onClick={() => setIsSettingsOpen(true)}
           />
         </motion.div>
-      </div>
 
-      <SettingsOverlay isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+        {/* Achievement badges */}
+        {unlockedBadgeIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2 }}
+            style={{ display: 'flex', gap: 16, marginTop: 52 }}
+          >
+            {unlockedBadgeIds.slice(0, 5).map((id, i) => (
+              <motion.div
+                key={id}
+                whileHover={{ scale: 1.25, y: -6 }}
+                style={{
+                  width: 44, height: 44,
+                  border: '1px solid rgba(212,175,55,0.3)',
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#D4AF37',
+                  background: 'rgba(5,5,10,0.9)',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+                }}
+              >
+                <Award size={20} />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </motion.div>
 
-      {/* Footer Info */}
-      <div className="font-fira" style={{
-        position: 'absolute',
-        bottom: '40px',
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '0 60px',
-        color: '#4B456A',
-        fontSize: '10px',
-        letterSpacing: '0.15em',
-        opacity: 0.6
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: unlockedBadgeIds.length > 0 ? '#7C3AED' : '#4B456A' }}>
-          <div className="issue-badge" style={{ 
-            background: '#EF4444', 
-            color: '#FFF', 
-            padding: '2px 8px', 
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginRight: '12px',
-            cursor: 'default'
-          }}>
-            <span style={{ fontSize: '8px', fontWeight: 'bold', background: 'rgba(0,0,0,0.2)', padding: '0 4px', borderRadius: '50%' }}>N</span>
-            <span style={{ fontSize: '9px' }}>1 ISSUE</span>
-          </div>
-          <Award size={14} />
-          <span>HALL OF RECORDS: {unlockedBadgeIds.length} BADGES EARNED</span>
-        </div>
-        <span>RESONANCE CONNECTED: LEETCODE.API</span>
-      </div>
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <SettingsOverlay onClose={() => setIsSettingsOpen(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function MenuButton({ label, icon, primary, disabled, onClick }: { 
-  label: string, 
-  icon: React.ReactNode, 
-  primary?: boolean, 
-  disabled?: boolean,
-  onClick?: () => void 
+function MenuButton({
+  icon, label, onClick, primary = false
+}: {
+  icon: React.ReactNode; label: string; onClick: () => void; primary?: boolean;
 }) {
-  const handleAction = () => {
-    if (!disabled && onClick) {
-      audioManager.playSFX('/audio/sfx/click.mp3');
-      onClick();
-    }
-  };
-
   return (
     <motion.button
-      whileHover={!disabled ? { scale: 1.02, x: 5 } : {}}
-      whileTap={!disabled ? { scale: 0.98 } : {}}
-      onClick={handleAction}
-      disabled={disabled}
-      className="font-fira"
+      variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
+      whileHover={{ x: 10 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
       style={{
-        width: '380px',
-        padding: '18px 32px',
-        background: primary ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' : 'rgba(255,255,255,0.02)',
-        border: primary ? 'none' : '1px solid rgba(124, 58, 237, 0.1)',
-        borderRadius: '2px',
-        color: disabled ? '#2D2850' : '#FFF',
+        width: '100%',
+        padding: '18px 28px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        fontSize: '13px',
-        letterSpacing: '0.2em',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: primary ? '0 10px 30px rgba(124, 58, 237, 0.2)' : 'none',
+        gap: 18,
+        background: primary
+          ? 'linear-gradient(100deg, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0.04) 100%)'
+          : 'rgba(255,255,255,0.02)',
+        border: primary
+          ? '1px solid rgba(212,175,55,0.6)'
+          : '1px solid rgba(255,255,255,0.07)',
+        cursor: 'pointer',
+        transition: 'border-color 0.3s, background 0.3s',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        fontFamily: "'Cinzel', serif",
+      }}
+      onMouseEnter={(e) => {
+        const btn = e.currentTarget;
+        btn.style.borderColor = 'rgba(212,175,55,0.8)';
+        btn.style.background = primary
+          ? 'linear-gradient(100deg, rgba(212,175,55,0.26) 0%, rgba(212,175,55,0.08) 100%)'
+          : 'rgba(212,175,55,0.06)';
+      }}
+      onMouseLeave={(e) => {
+        const btn = e.currentTarget;
+        btn.style.borderColor = primary ? 'rgba(212,175,55,0.6)' : 'rgba(255,255,255,0.07)';
+        btn.style.background = primary
+          ? 'linear-gradient(100deg, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0.04) 100%)'
+          : 'rgba(255,255,255,0.02)';
       }}
     >
-      {!primary && !disabled && (
-        <div style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: '2px',
-          height: '100%',
-          background: '#7C3AED',
-          opacity: 0,
-          transition: 'opacity 0.3s ease'
-        }} className="hover-indicator" />
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        {icon}
-        <span style={{ fontWeight: primary ? 600 : 400 }}>{label}</span>
-      </div>
-      <ChevronRight size={16} style={{ opacity: 0.3, transition: 'transform 0.3s ease' }} className="arrow-icon" />
-      
-      <style jsx>{`
-        button:hover .hover-indicator { opacity: 1 !important; }
-        button:hover .arrow-icon { transform: translateX(4px); opacity: 0.8 !important; }
-        button:hover { background: ${primary ? 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' : 'rgba(255,255,255,0.05)'} !important; border-color: rgba(124, 58, 237, 0.4) !important; }
-      `}</style>
+      <span style={{ color: '#D4AF37', opacity: primary ? 1 : 0.6 }}>{icon}</span>
+      <span style={{
+        color: primary ? '#F5E6C8' : 'rgba(255,255,255,0.55)',
+        fontSize: 13,
+        fontWeight: 700,
+        letterSpacing: '4px',
+      }}>
+        {label}
+      </span>
     </motion.button>
   );
 }

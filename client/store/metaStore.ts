@@ -5,11 +5,11 @@ export type AppView = 'MENU' | 'GAME' | 'ONBOARDING' | 'LOADING' | 'CINEMATIC' |
 interface MetaState {
   currentView: AppView;
   hasCompletedOnboarding: boolean;
-  
+
   // Actions
   setView: (view: AppView) => void;
   completeOnboarding: () => void;
-  
+
   // Persistence
   initializeMeta: () => void;
 }
@@ -28,8 +28,8 @@ export const useMetaStore = create<MetaState>((set, get) => ({
   initializeMeta: () => {
     const onboardingComplete = localStorage.getItem('obsidian_onboarding_complete') === 'true';
     const hasSave = localStorage.getItem('obsidian_depths_save_v1') !== null;
-    
-    set({ 
+
+    set({
       hasCompletedOnboarding: onboardingComplete,
       currentView: hasSave ? 'MENU' : 'MENU' // Always start at menu
     });
