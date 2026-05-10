@@ -69,7 +69,7 @@ const TypewriterText = ({ text, speed = 30 }: { text: string, speed?: number }) 
 export default function CombatScene() {
   const { 
     combatPhase, setCurrentBoss, setCombatPhase, applyBossRetaliation, addXp, 
-    serializeCombatState, hydrateCombatState, playerLevel, playerMaxHp, playerMaxMp, playerHp, playerMp
+    serializeCombatState, hydrateCombatState, playerLevel, playerMaxHp, playerMaxMp, playerHp, playerMp, enemyHp
   } = useCombatStore();
   
   const { 
@@ -537,20 +537,18 @@ export default function CombatScene() {
 
 
 
-        {(combatPhase === 'EXPLORATION' || combatPhase === 'DECISION') && (
+        {(combatPhase === 'EXPLORATION' || combatPhase === 'DECISION' || combatPhase === 'REALTIME_COMBAT') && (
           <>
             <Minimap />
-            <div style={{ position: 'absolute', top: '24px', left: '24px', color: '#94A3B8', fontFamily: 'var(--font-mono)', fontSize: '14px', pointerEvents: 'auto' }}>
-              <div onClick={() => setIsCodexOpen(true)} style={{ cursor: 'pointer', color: '#7C3AED', marginBottom: '8px', textDecoration: 'underline' }}>
-                OPEN CODEX [C]
-              </div>
-              <div onClick={() => {
-                setIsIDESolverOpen(true);
-              }} style={{ cursor: 'pointer', color: '#00E5FF', textDecoration: 'underline', marginBottom: '12px' }}>
-                DECRYPT FRAGMENT [F]
-              </div>
-              LVL {playerLevel} | HP {playerHp}/{derivedStats.maxHp} | ATK x{derivedStats.damageMultiplier.toFixed(2)}
-            </div>
+            <PremiumHUD 
+              playerHp={playerHp} 
+              playerMaxHp={playerMaxHp} 
+              playerLevel={playerLevel}
+              enemyHp={enemyHp}
+              isCombatActive={combatPhase === 'REALTIME_COMBAT'}
+              onOpenCodex={() => setIsCodexOpen(true)}
+              onOpenSolver={() => setIsIDESolverOpen(true)}
+            />
           </>
         )}
 
@@ -609,6 +607,138 @@ export default function CombatScene() {
           )}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+function PremiumHUD({ 
+  playerHp, playerMaxHp, playerLevel, enemyHp, isCombatActive 
+}: { 
+  playerHp: number, playerMaxHp: number, playerLevel: number, enemyHp: number, isCombatActive: boolean
+}) {
+  return (
+    <div style={{
+      position: 'absolute',
+      top: '30px',
+      left: '30px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '20px',
+      pointerEvents: 'none',
+      zIndex: 1000,
+      fontFamily: "'Cinzel', serif" // Fantasy/Ancient font
+    }}>
+      {/* Google Font Import for Cinzel */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');
+      `}} />
+
+      {/* Player Frame (Ancient Stone) */}
+      <motion.div 
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        style={{
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%)',
+          padding: '12px 20px',
+          borderRadius: '4px',
+          border: '2px solid #8B7355', // Aged Gold/Bronze
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(139, 115, 85, 0.2)',
+          minWidth: '320px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Decorative Corner Accents */}
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '10px', height: '10px', borderTop: '2px solid #D4AF37', borderLeft: '2px solid #D4AF37' }} />
+        <div style={{ position: 'absolute', top: 0, right: 0, width: '10px', height: '10px', borderTop: '2px solid #D4AF37', borderRight: '2px solid #D4AF37' }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ 
+              width: '36px', height: '36px', 
+              background: '#0a0a0a',
+              border: '2px solid #D4AF37',
+              borderRadius: '2px', transform: 'rotate(45deg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 10px rgba(212, 175, 55, 0.3)'
+            }}>
+              <span style={{ transform: 'rotate(-45deg)', color: '#D4AF37', fontWeight: '900', fontSize: '14px' }}>{playerLevel}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '4px' }}>
+              <span style={{ color: '#D4AF37', fontWeight: '700', fontSize: '16px', letterSpacing: '2px' }}>WARRIOR</span>
+              <span style={{ color: '#8B7355', fontSize: '9px', fontWeight: 'bold', letterSpacing: '1px' }}>LEVEL STATUS</span>
+            </div>
+          </div>
+          <div style={{ fontSize: '18px', filter: 'sepia(1) saturate(5)' }}>🛡️</div>
+        </div>
+
+        {/* HP Bar Container (Deep Ruby) */}
+        <div style={{ position: 'relative', width: '100%', marginTop: '4px' }}>
+          <div style={{ 
+            width: '100%', height: '18px', background: '#0a0a0a', 
+            border: '1px solid #4a4a4a', borderRadius: '2px', overflow: 'hidden',
+            boxShadow: 'inset 0 0 8px rgba(0,0,0,0.8)'
+          }}>
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${(playerHp / playerMaxHp) * 100}%` }}
+              transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+              style={{ 
+                height: '100%', 
+                background: playerHp < 30 
+                  ? 'linear-gradient(90deg, #7f1d1d, #450a0a)' 
+                  : 'linear-gradient(90deg, #991b1b, #7f1d1d)',
+                boxShadow: '0 0 15px rgba(153, 27, 27, 0.4)',
+                borderRight: '2px solid #D4AF37'
+              }}
+            />
+          </div>
+          <div style={{ position: 'absolute', right: '8px', top: '2px', color: '#D4AF37', fontSize: '10px', fontWeight: 'bold', textShadow: '1px 1px 2px black' }}>
+            {Math.ceil(playerHp)} <span style={{ opacity: 0.6 }}>/ {playerMaxHp}</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Enemy Bar (Ancient Runic) */}
+      <AnimatePresence>
+        {isCombatActive && enemyHp > 0 && (
+          <motion.div 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -20, opacity: 0 }}
+            style={{
+              background: 'rgba(0, 0, 0, 0.85)',
+              padding: '10px 18px',
+              border: '1px solid #581c1c',
+              borderTop: '2px solid #D4AF37',
+              minWidth: '280px',
+              position: 'relative'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ color: '#D4AF37', fontWeight: 'bold', fontSize: '14px', letterSpacing: '2px' }}>DREAD KNIGHT</span>
+              <span style={{ color: '#581c1c', fontSize: '10px', fontWeight: 'bold' }}>ANCIENT FOE</span>
+            </div>
+            <div style={{ width: '100%', height: '10px', background: '#0a0a0a', border: '1px solid #333' }}>
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${(enemyHp / 100) * 100}%` }}
+                style={{ 
+                  height: '100%', 
+                  background: 'linear-gradient(90deg, #450a0a, #7f1d1d)',
+                  boxShadow: '0 0 10px rgba(127, 29, 29, 0.5)'
+                }}
+              />
+            </div>
+            {/* Runic Symbol Decoration */}
+            <div style={{ position: 'absolute', bottom: '-15px', left: '50%', transform: 'translateX(-50%)', color: '#D4AF37', fontSize: '12px', opacity: 0.5 }}>
+              ᛚ ᛟ ᛇ ᚦ
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

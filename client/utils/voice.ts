@@ -18,7 +18,7 @@ const WIZARD_VOICE_ID = "TxGEqnHWrfWFTfGW9XjX"; // Josh — deep, authoritative
 const PLAYER_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Bella — clear, expressive
 
 export interface DialogueLine {
-  speaker: "Player" | "Wizard";
+  speaker: "Player" | "Wizard" | "Enemy";
   text: string;
 }
 
@@ -29,7 +29,7 @@ export interface DialogueLine {
 export async function prefetchDialogueAudio(
   line: DialogueLine
 ): Promise<HTMLAudioElement | null> {
-  const voiceId = line.speaker === "Wizard" ? WIZARD_VOICE_ID : PLAYER_VOICE_ID;
+  const voiceId = (line.speaker === "Wizard" || line.speaker === "Enemy") ? WIZARD_VOICE_ID : PLAYER_VOICE_ID;
   console.log(`[Voice/Prefetch] Fetching ${line.speaker}…`);
 
   try {

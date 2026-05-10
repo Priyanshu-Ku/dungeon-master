@@ -7,6 +7,7 @@ export type CombatPhase =
   | 'TIMING'
   | 'HIT_RESULT'
   | 'BOSS_RETALIATION'
+  | 'REALTIME_COMBAT'
   | 'VICTORY'
   | 'DEFEAT';
 
@@ -64,6 +65,8 @@ interface CombatState {
   triggerPostSolveDialogue: boolean;
   playerMapPos: { x: number; z: number };
   showDaughterLocation: boolean;
+  enemyHp: number;
+  enemyMaxHp: number;
 
   // Actions
   setCombatPhase: (phase: CombatPhase) => void;
@@ -73,6 +76,7 @@ interface CombatState {
   setTriggerPostSolveDialogue: (trigger: boolean) => void;
   setPlayerMapPos: (pos: { x: number; z: number }) => void;
   setShowDaughterLocation: (show: boolean) => void;
+  setEnemyHp: (hp: number) => void;
   setCurrentBoss: (boss: Boss | null) => void;
   setSelectedChallenge: (challenge: Challenge | null) => void;
   setHitQuality: (quality: HitQuality) => void;
@@ -108,6 +112,8 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   triggerPostSolveDialogue: false,
   playerMapPos: { x: 0, z: 0 },
   showDaughterLocation: false,
+  enemyHp: 100,
+  enemyMaxHp: 100,
 
   setCombatPhase: (phase) => set({ combatPhase: phase }),
   setActiveDialogue: (line, speaker) => set({ activeDialogueLine: line, activeSpeaker: speaker }),
@@ -116,7 +122,8 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   setTriggerPostSolveDialogue: (trigger) => set({ triggerPostSolveDialogue: trigger }),
   setPlayerMapPos: (pos) => set({ playerMapPos: pos }),
   setShowDaughterLocation: (show) => set({ showDaughterLocation: show }),
-  setCurrentBoss: (boss) => set({ currentBoss: boss }),
+  setEnemyHp: (hp) => set({ enemyHp: hp }),
+  setCurrentBoss: (boss) => set({ currentBoss: boss, combatPhase: boss ? 'BOSS_CINEMATIC' : 'EXPLORATION' }),
   setSelectedChallenge: (challenge) => set({ selectedChallenge: challenge }),
   setHitQuality: (quality) => set({ hitQuality: quality }),
 

@@ -1,41 +1,99 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import { useGLTF, useAnimations, Html } from '@react-three/drei';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { useGLTF, useAnimations, useFBX, Html } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface EnemyNPCProps {
-  position: [number, number, number];
+  positionRef: React.MutableRefObject<THREE.Vector3>;
   rotation?: [number, number, number];
   scale?: [number, number, number];
   isConfronted?: boolean;
   isAttacking?: boolean;
   isMoving?: boolean;
+  isTalking?: boolean;
+  isRoaring?: boolean;
   health?: number;
   maxHealth?: number;
 }
 
 export function EnemyNPC({ 
-  position, 
+  positionRef, 
   rotation = [0, 0, 0], 
   scale = [1, 1, 1], 
   isConfronted = false,
   isAttacking = false,
   isMoving = false,
+  isTalking = false,
+  isRoaring = false,
   health = 100,
   maxHealth = 100
 }: EnemyNPCProps) {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF('/models/enemy.glb');
-  const { actions } = useAnimations(animations, group);
+  const { scene } = useGLTF('/models/enemy.glb');
+
+  // ... (load animations)
+  const idleFbx = useFBX('/animations/idle.fbx');
+  const attackFbx = useFBX('/animations/attack.fbx');
+  const walkFbx = useFBX('/enemy_animation/enemywalk.fbx');
+  const deathFbx = useFBX('/enemy_animation/enemydeath.fbx');
+  const roarFbx = useFBX('/enemy_animation/roar.fbx');
+  const talkFbx = useFBX('/enemy_animation/talk.fbx');
+
+  const processedAnimations = useMemo(() => {
+    const clips = [
+      idleFbx.animations[0].clone(),
+      walkFbx.animations[0].clone(),
+      attackFbx.animations[0].clone(),
+      deathFbx.animations[0].clone(),
+      roarFbx.animations[0].clone(),
+      talkFbx.animations[0].clone()
+    ];
+    clips[0].name = 'idle';
+    clips[1].name = 'walk';
+    clips[2].name = 'attack';
+    clips[3].name = 'death';
+    clips[4].name = 'roar';
+    clips[5].name = 'talk';
+    return clips;
+  }, [idleFbx, walkFbx, attackFbx, deathFbx, roarFbx, talkFbx]);
+
+  const { actions } = useAnimations(processedAnimations, group);
+
+  useFrame(() => {
+    if (group.current && positionRef.current) {
+      group.current.position.copy(positionRef.current);
+    }
+  });
 
   useEffect(() => {
-    if (isConfronted) {
-      const idleAnim = actions['enemyidle'] || actions['Idle'] || actions['idle'];
-      const walkAnim = actions['enemywalk'] || actions['Walk'] || actions['walk'];
-      const attackAnim = actions['enemyattack'] || actions['Attack'] || actions['attack'];
+    // ...
+    const idleAnim = actions['idle'];
+    const walkAnim = actions['walk'];
+    const attackAnim = actions['attack'];
+    const deathAnim = actions['death'];
+    const roarAnim = actions['roar'];
+    const talkAnim = actions['talk'];
 
-      if (isAttacking && attackAnim) {
+    if (health <= 0) {
+      if (deathAnim) {
+        Object.values(actions).forEach(a => a?.fadeOut(0.2));
+        deathAnim.reset().fadeIn(0.2).play();
+        deathAnim.clampWhenFinished = true;
+        deathAnim.setLoop(THREE.LoopOnce, 1);
+      }
+      return;
+    }
+
+    if (isConfronted) {
+      if (isRoaring && roarAnim) {
+        Object.values(actions).forEach(a => a?.fadeOut(0.2));
+        roarAnim.reset().fadeIn(0.2).play();
+      } else if (isTalking && talkAnim) {
+        Object.values(actions).forEach(a => a?.fadeOut(0.2));
+        talkAnim.reset().fadeIn(0.2).play();
+      } else if (isAttacking && attackAnim) {
         Object.values(actions).forEach(a => a?.fadeOut(0.2));
         attackAnim.reset().fadeIn(0.2).play();
       } else if (isMoving && walkAnim) {
@@ -46,7 +104,7 @@ export function EnemyNPC({
         idleAnim.reset().fadeIn(0.2).play();
       }
     } else {
-      const deathAnim = actions['enemydeath'] || actions['Death'] || actions['death'];
+      // Sleeping state: use end of death animation
       if (deathAnim) {
         deathAnim.reset().play();
         deathAnim.time = deathAnim.getClip().duration * 0.95;
@@ -54,10 +112,10 @@ export function EnemyNPC({
         deathAnim.clampWhenFinished = true;
       }
     }
-  }, [actions, isConfronted, isAttacking, isMoving]);
+  }, [actions, isConfronted, isAttacking, isMoving, isTalking, isRoaring, health]);
 
   return (
-    <group ref={group} position={position} rotation={rotation} scale={scale} dispose={null}>
+    <group ref={group} rotation={rotation} scale={scale} dispose={null}>
       {/* Health Bar */}
       {isConfronted && health > 0 && (
         <Html position={[0, 2.5, 0]} center>

@@ -2,10 +2,11 @@
 
 import React, { useRef, useEffect, useMemo } from 'react';
 import { useGLTF, useAnimations, useFBX, Html } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface PlayerCharacterProps {
-  position: [number, number, number];
+  positionRef: React.MutableRefObject<THREE.Vector3>;
   rotation: [number, number, number];
   moving: boolean;
   attacking?: boolean;
@@ -14,7 +15,7 @@ interface PlayerCharacterProps {
 }
 
 export function PlayerCharacter({ 
-  position, 
+  positionRef, 
   rotation, 
   moving, 
   attacking = false,
@@ -52,6 +53,12 @@ export function PlayerCharacter({
 
   const { actions } = useAnimations(processedAnimations, group);
 
+  useFrame(() => {
+    if (group.current && positionRef.current) {
+      group.current.position.copy(positionRef.current);
+    }
+  });
+
   useEffect(() => {
     const idleAction = actions['idle'];
     const walkAction = actions['walk'];
@@ -72,22 +79,7 @@ export function PlayerCharacter({
   }, [moving, attacking, actions]);
 
   return (
-    <group ref={group} position={position} rotation={rotation} scale={0.8} dispose={null}>
-      {/* Health Bar */}
-      <Html position={[0, 2.5, 0]} center>
-        <div style={{ width: '60px', height: '6px', background: '#333', border: '1px solid #000' }}>
-          <div style={{ 
-            width: `${(health / maxHealth) * 100}%`, 
-            height: '100%', 
-            background: '#00ff00',
-            transition: 'width 0.3s ease-out'
-          }} />
-        </div>
-        <div style={{ color: 'white', fontSize: '10px', textAlign: 'center', marginTop: '2px', fontWeight: 'bold' }}>
-          PLAYER
-        </div>
-      </Html>
-
+    <group ref={group} rotation={rotation} scale={0.8} dispose={null}>
       <group rotation={[-Math.PI / 2, 0, 0]}>
         <primitive object={scene} position={[0, -0.2, 0]} />
       </group>
